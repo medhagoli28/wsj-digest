@@ -15,5 +15,8 @@ venv/
 # Local env
 .env
 
+# Generated GitHub Pages output (published to the gh-pages branch, not master)
+public/
+
 # macOS
 .DS_Store
