@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Build a GitHub Pages site from the daily digests.
 
-Renders each digest-<date>.md into a styled HTML page (real headings, article
-cards, section color accents, a jump-to-section strip) and writes an index.html
-linking to them newest-first. Plain Python + inline CSS — no frameworks, no deps.
+The index is a monthly calendar: each day that has a digest is a clickable cell
+linking to that day's page. Each digest-<date>.md is rendered into a styled HTML
+page (headings, article cards, section color accents, jump-to-section strip).
+Plain Python + inline CSS — no frameworks, no dependencies.
 
 Usage:
   python3 generate_index.py            # output into ./public
@@ -11,6 +12,7 @@ Usage:
 """
 
 import argparse
+import calendar
 import datetime
 import glob
 import html
@@ -44,22 +46,42 @@ CSS = """
   .sources, .sources a { color: var(--muted); font-size: .87rem; }
   a { color: var(--tech); text-decoration: none; }
   a:hover { text-decoration: underline; }
-  .jump { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1.5rem;
-          font-size: .9rem; }
+  .jump { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1.5rem; font-size: .9rem; }
   .jump a { padding: .25rem .7rem; border: 1px solid var(--border); border-radius: 999px;
             color: #1a1a1a; background: var(--card); }
   .back { display: inline-block; margin-bottom: 1.1rem; font-size: .9rem; color: var(--muted); }
-  ul { list-style: none; padding: 0; }
-  li { padding: .6rem 0; border-bottom: 1px solid var(--border); font-size: 1.12rem; }
   hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
   footer { margin-top: 2.5rem; color: #9aa0a6; font-size: .82rem; }
+
+  /* Calendar index */
+  table.cal { width: 100%; border-collapse: collapse; margin: 0 0 2.4rem; table-layout: fixed; }
+  table.cal caption { caption-side: top; text-align: left; font-size: 1.3rem; font-weight: 700;
+                      letter-spacing: -0.01em; margin-bottom: .6rem; }
+  table.cal th { padding: .3rem .45rem; text-align: right; font-size: .68rem; font-weight: 600;
+                 text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  table.cal td { border: 1px solid var(--border); height: 84px; vertical-align: top;
+                 padding: .35rem .45rem; }
+  table.cal td.empty { border-color: transparent; }
+  table.cal td .num { font-size: .95rem; color: var(--muted); text-align: right; display: block; }
+  table.cal td.has { background: rgba(37, 99, 235, .09); }
+  table.cal td.has a { display: flex; flex-direction: column; height: 100%; }
+  table.cal td.has .num { color: inherit; font-weight: 800; font-size: 1.15rem; }
+  table.cal td.has .tag { margin-top: auto; font-size: .72rem; color: var(--tech); font-weight: 600; }
+  @media (max-width: 560px) {
+    table.cal td { height: 54px; padding: .25rem; }
+    table.cal td.has .tag { display: none; }
+    table.cal th { font-size: .58rem; }
+  }
   @media (prefers-color-scheme: dark) {
     :root { --card: #161b22; --border: #24292f; --muted: #9198a1; }
     body { color: #e6e6e6; background: #0d1117; }
     .jump a { color: #e6e6e6; }
     a { color: #6ea8fe; } h2 a, .article strong { color: inherit; }
+    table.cal td.has { background: rgba(110, 168, 254, .14); }
   }
 """
+
+WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 
 def find_digests():
@@ -92,7 +114,6 @@ def _section_class(text):
 
 
 def _strip_emoji(text):
-    """Drop a leading emoji so 'Tech' shows in the jump strip, not '💻 Tech'."""
     return re.sub(r"^[^\w]+", "", text).strip()
 
 
@@ -136,7 +157,7 @@ def md_to_html(md):
             if 'class="sources"' in para:
                 para += "</span>"
             cls = ' class="article"' if para.startswith("<strong>") else ""
-            if para.startswith("<em>") and not cls:      # the italic intro line under the title
+            if para.startswith("<em>") and not cls:
                 cls = ' class="lead"'
             out.append(f"<p{cls}>{para}</p>")
     if in_list:
@@ -161,25 +182,52 @@ def render_digest_page(md_text, date):
         links = " ".join(
             f'<a href="#{sid}">{html.escape(_strip_emoji(label))}</a>' for sid, label in sections
         )
-        # place the jump strip right after the <h1>
         frag = frag.replace("</h1>", f'</h1>\n<nav class="jump">{links}</nav>', 1)
     body = '<a class="back" href="index.html">← all digests</a>\n' + frag
     return _page(f"WSJ Digest — {pretty_date(date)}", body)
 
 
+def _month_calendar(year, month, digest_dates):
+    """Render one month as an HTML <table>; days with a digest link to their page."""
+    cal = calendar.Calendar(firstweekday=6)  # Sunday-first
+    head = "".join(f"<th>{d}</th>" for d in WEEKDAYS)
+    rows = []
+    for week in cal.monthdayscalendar(year, month):
+        cells = []
+        for day in week:
+            if day == 0:
+                cells.append('<td class="empty"></td>')
+                continue
+            iso = f"{year:04d}-{month:02d}-{day:02d}"
+            if iso in digest_dates:
+                cells.append(
+                    f'<td class="has"><a href="digest-{iso}.html">'
+                    f'<span class="num">{day}</span>'
+                    f'<span class="tag">Digest →</span></a></td>'
+                )
+            else:
+                cells.append(f'<td><span class="num">{day}</span></td>')
+        rows.append("<tr>" + "".join(cells) + "</tr>")
+    caption = f"{calendar.month_name[month]} {year}"
+    return (
+        f'<table class="cal"><caption>{caption}</caption>\n'
+        f"<thead><tr>{head}</tr></thead>\n<tbody>\n" + "\n".join(rows) + "\n</tbody></table>"
+    )
+
+
 def render_index(digests):
-    """The index -> links to each digest's HTML page, newest first."""
-    if digests:
-        rows = "\n".join(
-            f'      <li><a href="digest-{d.isoformat()}.html">{html.escape(pretty_date(d))}</a></li>'
-            for d, _ in digests
-        )
+    """The index -> a calendar per month (newest first) with linked digest days."""
+    digest_dates = {d.isoformat() for d, _ in digests}
+    months = sorted({(d.year, d.month) for d, _ in digests}, reverse=True)
+    if months:
+        cals = "\n".join(_month_calendar(y, m, digest_dates) for y, m in months)
     else:
-        rows = "      <li>No digests yet.</li>"
+        cals = "<p class='lead'>No digests yet.</p>"
     body = (
         "  <h1>WSJ Deep Digest</h1>\n"
-        '  <p class="lead">Daily summaries — headlines from WSJ, depth researched from other outlets.</p>\n'
-        f"  <ul>\n{rows}\n  </ul>\n"
+        '  <p class="lead">Daily summaries — headlines from WSJ, depth researched from other outlets. '
+        "Pick a highlighted day.</p>\n"
+        f"{cals}\n"
         "  <footer>Generated automatically. No paywalled WSJ text is reproduced.</footer>"
     )
     return _page("WSJ Deep Digest", body)
