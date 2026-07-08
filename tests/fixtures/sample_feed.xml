@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>"site:wsj.com" - Google News</title>
+    <item>
+      <title>Apple to Spend $30 Billion on U.S.-Made Chips From Broadcom - WSJ</title>
+      <link>https://news.google.com/rss/articles/ABC123?oc=5</link>
+      <pubDate>Wed, 08 Jul 2026 12:00:00 GMT</pubDate>
+      <description>&lt;a href="https://example.com"&gt;link blob&lt;/a&gt;</description>
+    </item>
+    <item>
+      <title>Microsoft Is Cutting More Than 3,000 Jobs in Xbox Division - WSJ</title>
+      <link>https://news.google.com/rss/articles/DEF456?oc=5</link>
+      <pubDate>Mon, 06 Jul 2026 09:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Caf&#233; Culture Meets AI &amp; Robotics - WSJ</title>
+      <link>https://news.google.com/rss/articles/GHI789?oc=5</link>
+      <pubDate>Tue, 07 Jul 2026 15:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title></title>
+      <link>https://news.google.com/rss/articles/EMPTY?oc=5</link>
+    </item>
+  </channel>
+</rss>
