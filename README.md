@@ -19,6 +19,9 @@ deals, market swings) are covered by many non-paywalled outlets. So we use WSJ f
 and everyone else for **depth**. The only stories this can't deepen are WSJ **exclusives/scoops** that
 no one else has covered yet — for those you get just the dek.
 
+## Why I built this
+I try follow WSJ regularly but kept losing track of stories across the day — too many headlines, too easy to forget what I meant to read. I wanted one place where the day's important stories were already researched and waiting for me, without having to remember to go looking. So I built this.
+
 ## Files
 - `wsj_fetch.py` — the whole tool. Stage 1 (fetch) is stdlib-only; Stage 2 (`--research`) uses the Anthropic SDK.
 - `tests/` — unit tests for the pure parse/clean helpers (`python3 -m pytest`).
