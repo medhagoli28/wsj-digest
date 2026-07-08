@@ -3,8 +3,10 @@
 Run with:  python3 -m pytest
 """
 
+import datetime
 from pathlib import Path
 
+import dedup
 from wsj_fetch import clean, parse_items, split_summary_and_sources
 
 # A small Google-News-style RSS payload captured as a fixture.
@@ -53,3 +55,28 @@ def test_split_summary_and_sources_parses_and_drops_wsj():
     summary, sources = split_summary_and_sources(text)
     assert summary == "Apple committed over $30B to Broadcom for U.S. chips."
     assert sources == ["https://www.cnbc.com/x", "https://reuters.com/z"]  # wsj.com dropped
+
+
+# --- dedup.is_duplicate() ----------------------------------------------------
+# embed() is monkeypatched so these run offline (no OpenAI call). The incoming
+# headline always embeds to [1, 0]; we vary the stored vectors and dates.
+
+def _today():
+    return datetime.date.today().isoformat()
+
+
+def test_is_duplicate_true_when_above_threshold(monkeypatch):
+    monkeypatch.setattr(dedup, "embed", lambda text: [1.0, 0.0])
+    store = {"Old headline": {"embedding": [1.0, 0.0], "date": _today()}}  # cosine 1.0
+    assert dedup.is_duplicate("A near-identical headline", store) is True
+
+
+def test_is_duplicate_false_when_below_threshold(monkeypatch):
+    monkeypatch.setattr(dedup, "embed", lambda text: [1.0, 0.0])
+    store = {"Unrelated story": {"embedding": [0.0, 1.0], "date": _today()}}  # cosine 0.0
+    assert dedup.is_duplicate("A totally different headline", store) is False
+
+
+def test_is_duplicate_false_when_store_empty(monkeypatch):
+    monkeypatch.setattr(dedup, "embed", lambda text: [1.0, 0.0])
+    assert dedup.is_duplicate("Anything at all", {}) is False
