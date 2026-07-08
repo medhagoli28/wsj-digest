@@ -80,3 +80,15 @@ def test_is_duplicate_false_when_below_threshold(monkeypatch):
 def test_is_duplicate_false_when_store_empty(monkeypatch):
     monkeypatch.setattr(dedup, "embed", lambda text: [1.0, 0.0])
     assert dedup.is_duplicate("Anything at all", {}) is False
+
+
+def test_prune_store_drops_entries_older_than_lookback():
+    old = (datetime.date.today() - datetime.timedelta(days=30)).isoformat()
+    recent = datetime.date.today().isoformat()
+    store = {
+        "old story": {"embedding": [1.0, 0.0], "date": old},
+        "recent story": {"embedding": [1.0, 0.0], "date": recent},
+    }
+    pruned = dedup.prune_store(store)
+    assert "recent story" in pruned
+    assert "old story" not in pruned
