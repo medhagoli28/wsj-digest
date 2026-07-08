@@ -21,8 +21,14 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Build the headline digest (free, stdlib only)
-        run: python3 wsj_fetch.py --limit 10 > "digest-$(date -u +%F).md"
+      - name: Build the headline digest (only if none exists for today)
+        run: |
+          f="digest-$(date -u +%F).md"
+          if [ -f "$f" ]; then
+            echo "$f already exists (likely a researched digest) — keeping it."
+          else
+            python3 wsj_fetch.py --limit 10 > "$f"
+          fi
 
       - name: Commit the digest
         run: |
