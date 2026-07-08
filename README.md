@@ -3,8 +3,8 @@
 A two-stage tool that gives you a detailed daily summary of the WSJ **Tech**, **Markets & Finance**,
 and **Personal Finance** sections — **without touching any paywalled article text.**
 
-- **Stage 1 (`wsj_fetch.py`)** pulls the free RSS layer: every article's **headline + dek + link** per section.
-- **Stage 2 (Claude)** takes each headline and **researches the same story across other outlets**
+- **Stage 1 (`wsj_fetch.py`)** pulls the free RSS layer: every article's **headline + link** per section.
+- **Stage 2 (`wsj_fetch.py --research`)** takes each headline and **researches the same story across other outlets**
   (Reuters, AP, CNBC, CoinDesk, SEC filings, etc.) to write a deep summary — legally clean, no WSJ body used.
 
 ```
@@ -20,16 +20,21 @@ and everyone else for **depth**. The only stories this can't deepen are WSJ **ex
 no one else has covered yet — for those you get just the dek.
 
 ## Files
-- `wsj_fetch.py` — Stage 1 fetcher (zero dependencies, Python 3 stdlib only).
-- `digest.json` — last fetched headlines (regenerated each run).
-- `README.md` — this file.
+- `wsj_fetch.py` — the whole tool. Stage 1 (fetch) is stdlib-only; Stage 2 (`--research`) uses the Anthropic SDK.
+- `tests/` — unit tests for the pure parse/clean helpers (`python3 -m pytest`).
+- `.github/workflows/daily-digest.yml` — cron that runs Stage 2 daily and commits the digest.
+- `requirements.txt` — the one runtime dependency (`anthropic`), needed only for Stage 2.
+- `digest-<date>.md` — a generated deep digest (committed daily by the workflow).
 
 ## Sources (all free)
-| Section | Source | Notes |
-|---|---|---|
-| Tech | `feeds.a.dj.com/rss/RSSWSJD.xml` | native WSJ feed, includes deks |
-| Markets & Finance | `feeds.a.dj.com/rss/RSSMarketsMain.xml` | native WSJ feed, includes deks |
-| Personal Finance | Google News RSS filtered to `site:wsj.com` | WSJ blocks its own PF feed (403); this returns WSJ PF headlines |
+Headlines come from Google News RSS scoped to `site:wsj.com` (the native `feeds.a.dj.com`
+feeds intermittently serve a stale CDN cache, so we don't rely on them):
+
+| Section | Query |
+|---|---|
+| Tech | `site:wsj.com/tech when:4d` |
+| Markets & Finance | `stock market site:wsj.com when:4d` |
+| Personal Finance | `"personal finance" site:wsj.com when:7d` |
 
 ---
 
@@ -51,51 +56,42 @@ This is the simplest repeatable workflow and what the demo used.
 You can tune it: "only the top 5 per section," "focus on market-moving items," "add a 3-bullet
 'why it matters,'" "flag WSJ exclusives separately," etc.
 
-### Mode B — Fully automated (standalone script + API, hands-off)
-For a cron job that emails/Slacks you a digest every morning with no human in the loop, replace
-Stage 2 with an LLM API call that has web search enabled. Pseudocode:
+### Mode B — Fully automated (`--research`, hands-off)
+Stage 2 is implemented in `wsj_fetch.py` as the `research_headline()` function: it sends each
+headline to Claude (`claude-opus-4-8`) with the server-side **web_search** tool enabled, and Claude
+writes a short, sourced summary from non-WSJ outlets. Run it end-to-end with `--research`:
 
-```python
-import json, subprocess
-# 1. Stage 1
-subprocess.run(["python3", "wsj_fetch.py", "--json", "digest.json"])
-items = json.load(open("digest.json"))
-
-# 2. Stage 2 — call an LLM with a web-search tool, once per headline (or batched by section)
-#    e.g. Anthropic Messages API with the web_search tool, or the OpenAI/Gemini equivalents.
-for it in items:
-    prompt = f"Research this news item from sources OTHER THAN wsj.com and write a 4-6 sentence " \
-             f"summary with concrete numbers, then a one-line 'why it matters'. " \
-             f"Headline: {it['title']}. Dek: {it['dek']}. If no non-WSJ coverage exists, say so."
-    # summary = call_llm_with_web_search(prompt)   # <-- your API of choice
-    # collect summaries...
-
-# 3. Format into markdown / HTML and deliver (email, Slack webhook, file)
-```
-
-Then schedule it:
 ```bash
-# every weekday at 7am
-0 7 * * 1-5  cd ~/Downloads/wsj-digest && /usr/bin/python3 daily_digest.py
+pip install -r requirements.txt
+export ANTHROPIC_API_KEY=sk-ant-...
+python3 wsj_fetch.py --research --limit 10   # writes digest-<date>.md
 ```
-(You'd add an API key in the environment and a delivery step — email/Slack — to `daily_digest.py`.)
+
+How Stage 2 works, in three small functions:
+- `research_headline(client, item)` — one API call per headline, web search on, returns summary + sources.
+- `split_summary_and_sources(text)` — parses the model's `SOURCES:` line and drops any wsj.com links.
+- `research_to_markdown(...)` — groups the results into a dated Markdown digest.
+
+### Automated daily run (GitHub Actions)
+`.github/workflows/daily-digest.yml` runs `--research` on a cron (`0 16 * * *` = noon ET) and commits
+`digest-<date>.md` back to the repo. To enable it: add your key as a repo secret named
+**`ANTHROPIC_API_KEY`** (Settings → Secrets and variables → Actions). You can also trigger it manually
+from the Actions tab (`workflow_dispatch`).
 
 ---
 
-## Checking feed freshness
-The native WSJ feeds are served through a CDN and can occasionally return cached/stale items.
-Sanity-check the newest timestamp:
-```bash
-curl -s -A "Mozilla/5.0" https://feeds.a.dj.com/rss/RSSMarketsMain.xml \
-  | grep -o "<pubDate>[^<]*</pubDate>" | head -3
-```
-If the dates look old, wait and re-fetch, or rely more on the Google-News-sourced sections
-(which are near-real-time).
-
 ## Options
 ```
-python3 wsj_fetch.py --limit N       # items per section (default 12)
-python3 wsj_fetch.py --json PATH      # write structured JSON
+python3 wsj_fetch.py --limit N        # items per section (default 12)
+python3 wsj_fetch.py --json PATH      # Mode A: write structured JSON
+python3 wsj_fetch.py --research       # Mode B: deepen each headline via Claude web search
+python3 wsj_fetch.py --research --out PATH   # choose the output file
+```
+
+## Running the tests
+```bash
+pip install pytest
+python3 -m pytest        # unit tests for clean() / parse_items() / split_summary_and_sources()
 ```
 
 ## Legal note
