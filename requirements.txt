@@ -1,0 +1,3 @@
+# Runtime dependency. The fetch layer is stdlib-only; the research layer (Stage 2)
+# uses the Anthropic SDK for Claude's server-side web_search tool.
+anthropic>=0.40
