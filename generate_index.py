@@ -50,10 +50,13 @@ CSS = """
   table.cal td { border: 1px solid var(--border); height: 84px; vertical-align: top; padding: .35rem .45rem; }
   table.cal td.empty { border-color: transparent; }
   table.cal td .num { font-size: .95rem; color: var(--muted); text-align: right; display: block; }
-  table.cal td.has { background: rgba(37, 99, 235, .09); }
+  /* days with a digest stay clickable, but are not "highlighted" */
   table.cal td.has a { display: flex; flex-direction: column; height: 100%; }
-  table.cal td.has .num { color: inherit; font-weight: 800; font-size: 1.15rem; }
+  table.cal td.has .num { color: var(--tech); font-weight: 700; }
   table.cal td.has .tag { margin-top: auto; font-size: .72rem; color: var(--tech); font-weight: 600; }
+  /* only the current date is highlighted */
+  table.cal td.today { background: rgba(37, 99, 235, .09); }
+  table.cal td.today .num { font-weight: 800; font-size: 1.15rem; }
   @media (max-width: 560px) {
     table.cal td { height: 54px; padding: .25rem; }
     table.cal td.has .tag { display: none; } table.cal th { font-size: .58rem; }
@@ -90,7 +93,7 @@ CSS = """
     :root { --card: #161b22; --border: #24292f; --muted: #9198a1; }
     body { color: #e6e6e6; background: #0d1117; }
     a { color: #6ea8fe; }
-    table.cal td.has { background: rgba(110, 168, 254, .14); }
+    table.cal td.today { background: rgba(110, 168, 254, .14); }
   }
 """
 
@@ -219,9 +222,10 @@ def render_digest_page(md_text, date):
 
 # --- index page (calendar) --------------------------------------------------
 
-def _month_calendar(year, month, digest_dates):
+def _month_calendar(year, month, digest_dates, today=None):
     cal = calendar.Calendar(firstweekday=6)  # Sunday-first
     head = "".join(f"<th>{d}</th>" for d in WEEKDAYS)
+    today_iso = today.isoformat() if today else None
     rows = []
     for week in cal.monthdayscalendar(year, month):
         cells = []
@@ -230,13 +234,19 @@ def _month_calendar(year, month, digest_dates):
                 cells.append('<td class="empty"></td>')
                 continue
             iso = f"{year:04d}-{month:02d}-{day:02d}"
+            classes = []
+            if iso in digest_dates:
+                classes.append("has")
+            if iso == today_iso:
+                classes.append("today")
+            cls = f' class="{" ".join(classes)}"' if classes else ""
             if iso in digest_dates:
                 cells.append(
-                    f'<td class="has"><a href="digest-{iso}.html">'
+                    f'<td{cls}><a href="digest-{iso}.html">'
                     f'<span class="num">{day}</span><span class="tag">Digest →</span></a></td>'
                 )
             else:
-                cells.append(f'<td><span class="num">{day}</span></td>')
+                cells.append(f'<td{cls}><span class="num">{day}</span></td>')
         rows.append("<tr>" + "".join(cells) + "</tr>")
     caption = f"{calendar.month_name[month]} {year}"
     return (
@@ -247,8 +257,9 @@ def _month_calendar(year, month, digest_dates):
 
 def render_index(digests):
     digest_dates = {d.isoformat() for d, _ in digests}
-    months = sorted({(d.year, d.month) for d, _ in digests}, reverse=True)
-    cals = "\n".join(_month_calendar(y, m, digest_dates) for y, m in months) if months \
+    today = datetime.datetime.now(datetime.timezone.utc).date()
+    months = sorted({(d.year, d.month) for d, _ in digests} | {(today.year, today.month)}, reverse=True)
+    cals = "\n".join(_month_calendar(y, m, digest_dates, today) for y, m in months) if months \
         else "<p class='lead'>No digests yet.</p>"
     body = (
         "  <h1>WSJ Deep Digest</h1>\n"
