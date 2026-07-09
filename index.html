@@ -11,26 +11,12 @@
   * { box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
          max-width: 740px; margin: 0 auto; padding: 2.5rem 1.1rem 4rem;
-         line-height: 1.65; color: #1a1a1a; background: #fff;
-         -webkit-font-smoothing: antialiased; }
+         line-height: 1.65; color: #1a1a1a; background: #fff; -webkit-font-smoothing: antialiased; }
   h1 { font-size: 2rem; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 .4rem; }
   .lead { color: var(--muted); margin: 0 0 1.4rem; font-size: .98rem; }
-  h2 { font-size: 1.25rem; margin: 2.2rem 0 .9rem; padding-left: .6rem;
-       border-left: 4px solid var(--muted); }
-  h2.tech { border-color: var(--tech); } h2.markets { border-color: var(--markets); }
-  h2.finance { border-color: var(--finance); }
-  .article { margin: 0 0 .9rem; padding: 1rem 1.15rem; border: 1px solid var(--border);
-             border-radius: 12px; background: var(--card); }
-  .article strong { font-size: 1.06rem; }
-  .article em { color: var(--muted); font-style: italic; }
-  .sources, .sources a { color: var(--muted); font-size: .87rem; }
   a { color: var(--tech); text-decoration: none; }
   a:hover { text-decoration: underline; }
-  .jump { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1.5rem; font-size: .9rem; }
-  .jump a { padding: .25rem .7rem; border: 1px solid var(--border); border-radius: 999px;
-            color: #1a1a1a; background: var(--card); }
   .back { display: inline-block; margin-bottom: 1.1rem; font-size: .9rem; color: var(--muted); }
-  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
   footer { margin-top: 2.5rem; color: #9aa0a6; font-size: .82rem; }
 
   /* Calendar index */
@@ -39,8 +25,7 @@
                       letter-spacing: -0.01em; margin-bottom: .6rem; }
   table.cal th { padding: .3rem .45rem; text-align: right; font-size: .68rem; font-weight: 600;
                  text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-  table.cal td { border: 1px solid var(--border); height: 84px; vertical-align: top;
-                 padding: .35rem .45rem; }
+  table.cal td { border: 1px solid var(--border); height: 84px; vertical-align: top; padding: .35rem .45rem; }
   table.cal td.empty { border-color: transparent; }
   table.cal td .num { font-size: .95rem; color: var(--muted); text-align: right; display: block; }
   table.cal td.has { background: rgba(37, 99, 235, .09); }
@@ -49,14 +34,40 @@
   table.cal td.has .tag { margin-top: auto; font-size: .72rem; color: var(--tech); font-weight: 600; }
   @media (max-width: 560px) {
     table.cal td { height: 54px; padding: .25rem; }
-    table.cal td.has .tag { display: none; }
-    table.cal th { font-size: .58rem; }
+    table.cal td.has .tag { display: none; } table.cal th { font-size: .58rem; }
   }
+
+  /* Bubble digest page (dark) */
+  body.digest { background: #201d1a; color: #e9e4da; max-width: 960px; }
+  body.digest .back { color: #b8b0a4; }
+  .mast { background: #efe9dc; color: #26221e; border-radius: 24px; padding: 2rem 2.1rem 1.6rem; margin: 0 0 1.4rem; }
+  .mast-month { font-size: 3.2rem; font-weight: 800; letter-spacing: -0.03em; line-height: .9; text-transform: uppercase; }
+  .mast-title { font-size: 1.5rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; margin-top: .35rem; }
+  .mast-sub { color: #6f6658; font-size: .92rem; margin-top: .45rem; font-style: italic; }
+  .bubbles { column-count: 2; column-gap: 1.2rem; }
+  .bubble { break-inside: avoid; -webkit-column-break-inside: avoid; display: inline-block; width: 100%;
+            background: #efe9dc; color: #26221e; border-radius: 22px; padding: 1.4rem 1.5rem; margin: 0 0 1.2rem; }
+  .bubble-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; }
+  .bubble-num { font-size: 3.4rem; font-weight: 800; line-height: .85; letter-spacing: -0.03em; }
+  .bubble-pill { display: inline-block; background: #26221e; color: #efe9dc; border-radius: 7px;
+                 padding: .3rem .7rem; font-size: .68rem; font-weight: 700; letter-spacing: .09em;
+                 text-transform: uppercase; margin-top: .5rem; white-space: nowrap; }
+  .bubble.tech .bubble-pill { background: var(--tech); }
+  .bubble.markets .bubble-pill { background: var(--markets); }
+  .bubble.finance .bubble-pill { background: var(--finance); }
+  .bubble-kicker { font-style: italic; text-transform: uppercase; font-size: .76rem; letter-spacing: .03em;
+                   color: #8a7f6d; margin: .9rem 0 .15rem; }
+  .bubble-title { font-size: 1.16rem; font-weight: 800; line-height: 1.25; margin: .15rem 0 .55rem; }
+  .bubble-title a { color: inherit; }
+  .bubble-body { font-size: .95rem; line-height: 1.55; color: #3a352e; margin: 0; }
+  .bubble-sources { font-size: .8rem; color: #8a7f6d; margin: .8rem 0 0; }
+  .bubble-sources a { color: #7a663f; }
+  @media (max-width: 640px) { .bubbles { column-count: 1; } .mast-month { font-size: 2.4rem; } }
+
   @media (prefers-color-scheme: dark) {
     :root { --card: #161b22; --border: #24292f; --muted: #9198a1; }
     body { color: #e6e6e6; background: #0d1117; }
-    .jump a { color: #e6e6e6; }
-    a { color: #6ea8fe; } h2 a, .article strong { color: inherit; }
+    a { color: #6ea8fe; }
     table.cal td.has { background: rgba(110, 168, 254, .14); }
   }
 </style>
@@ -68,7 +79,7 @@
 <thead><tr><th>Sun</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th></tr></thead>
 <tbody>
 <tr><td class="empty"></td><td class="empty"></td><td class="empty"></td><td><span class="num">1</span></td><td><span class="num">2</span></td><td><span class="num">3</span></td><td><span class="num">4</span></td></tr>
-<tr><td><span class="num">5</span></td><td><span class="num">6</span></td><td><span class="num">7</span></td><td class="has"><a href="digest-2026-07-08.html"><span class="num">8</span><span class="tag">Digest →</span></a></td><td><span class="num">9</span></td><td><span class="num">10</span></td><td><span class="num">11</span></td></tr>
+<tr><td><span class="num">5</span></td><td><span class="num">6</span></td><td><span class="num">7</span></td><td class="has"><a href="digest-2026-07-08.html"><span class="num">8</span><span class="tag">Digest →</span></a></td><td class="has"><a href="digest-2026-07-09.html"><span class="num">9</span><span class="tag">Digest →</span></a></td><td><span class="num">10</span></td><td><span class="num">11</span></td></tr>
 <tr><td><span class="num">12</span></td><td><span class="num">13</span></td><td><span class="num">14</span></td><td><span class="num">15</span></td><td><span class="num">16</span></td><td><span class="num">17</span></td><td><span class="num">18</span></td></tr>
 <tr><td><span class="num">19</span></td><td><span class="num">20</span></td><td><span class="num">21</span></td><td><span class="num">22</span></td><td><span class="num">23</span></td><td><span class="num">24</span></td><td><span class="num">25</span></td></tr>
 <tr><td><span class="num">26</span></td><td><span class="num">27</span></td><td><span class="num">28</span></td><td><span class="num">29</span></td><td><span class="num">30</span></td><td><span class="num">31</span></td><td class="empty"></td></tr>
