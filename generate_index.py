@@ -69,6 +69,13 @@ CSS = """
   .mast-month { font-size: 3.2rem; font-weight: 800; letter-spacing: -0.03em; line-height: .9; text-transform: uppercase; }
   .mast-title { font-size: 1.5rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; margin-top: .35rem; }
   .mast-sub { color: #6f6658; font-size: .92rem; margin-top: .45rem; font-style: italic; }
+  .filters { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1.4rem; }
+  .filter-btn { font: inherit; cursor: pointer; -webkit-appearance: none; border: 1px solid #4a453e;
+                background: transparent; color: #d9d2c6; border-radius: 999px; padding: .4rem .95rem;
+                font-size: .82rem; font-weight: 600; letter-spacing: .02em; }
+  .filter-btn:hover { border-color: #7a7266; }
+  .filter-btn.is-active { background: #efe9dc; color: #26221e; border-color: #efe9dc; }
+  .bubble[hidden] { display: none; }
   .bubbles { column-count: 2; column-gap: 1.2rem; }
   .bubble { break-inside: avoid; -webkit-column-break-inside: avoid; display: inline-block; width: 100%;
             background: #efe9dc; color: #26221e; border-radius: 22px; padding: 1.4rem 1.5rem; margin: 0 0 1.2rem; }
@@ -201,11 +208,44 @@ def _bubble(n, a):
         links = ", ".join(f'<a href="{html.escape(u)}">{html.escape(name)}</a>' for name, u in a["sources"])
         src = f'<p class="bubble-sources">Sources: {links}</p>'
     return (
-        f'<div class="bubble {a["cls"]}">'
+        f'<div class="bubble {a["cls"]}" data-cat="{a["cls"] or "other"}">'
         f'<div class="bubble-head"><span class="bubble-num">{n}</span>'
         f'<span class="bubble-pill">{html.escape(pill)}</span></div>'
         f"{kicker}<div class=\"bubble-title\">{title}</div>{body}{src}</div>"
     )
+
+
+def _filter_bar(articles):
+    """Filter buttons for the categories actually present, in canonical order."""
+    present = {a["cls"] for a in articles}
+    buttons = ['<button class="filter-btn is-active" data-filter="all">All</button>']
+    for _, cls in SECTION_CLASSES:
+        if cls in present:
+            buttons.append(f'<button class="filter-btn" data-filter="{cls}">{PILL_LABEL[cls]}</button>')
+    if len(buttons) < 3:            # nothing meaningful to filter by
+        return ""
+    return ('<div class="filters" role="group" aria-label="Filter by category">'
+            + "".join(buttons) + "</div>")
+
+
+FILTER_JS = """
+(function () {
+  var bar = document.querySelector('.filters');
+  if (!bar) return;
+  var cards = document.querySelectorAll('.bubble');
+  bar.addEventListener('click', function (e) {
+    var btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    var f = btn.getAttribute('data-filter');
+    bar.querySelectorAll('.filter-btn').forEach(function (b) {
+      b.classList.toggle('is-active', b === btn);
+    });
+    cards.forEach(function (c) {
+      c.hidden = !(f === 'all' || c.getAttribute('data-cat') === f);
+    });
+  });
+})();
+"""
 
 
 def render_digest_page(md_text, date):
@@ -216,7 +256,9 @@ def render_digest_page(md_text, date):
         f'<div class="mast-title">WSJ Digest</div>'
         f'<div class="mast-sub">{date.year} — researched from non-WSJ sources</div></header>'
     )
-    body = f'<a class="back" href="index.html">← calendar</a>\n{mast}\n<div class="bubbles">\n{cards}\n</div>'
+    filters = _filter_bar(articles)
+    body = (f'<a class="back" href="index.html">← calendar</a>\n{mast}\n{filters}\n'
+            f'<div class="bubbles">\n{cards}\n</div>\n<script>{FILTER_JS}</script>')
     return _page(f"WSJ Digest — {pretty_date(date)}", body, body_class="digest")
 
 
