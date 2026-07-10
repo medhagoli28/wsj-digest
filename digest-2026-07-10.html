@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WSJ Digest — July 10, 2026</title>
+  <style>
+  :root { color-scheme: dark;
+          --tech: #6ea8fe; --markets: #34d399; --finance: #fbbf24;
+          --accent: #6ea8fe; --border: #35302a; --muted: #9b9187; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         max-width: 740px; margin: 0 auto; padding: 2.5rem 1.1rem 4rem;
+         line-height: 1.65; color: #e9e4da; background: #201d1a; -webkit-font-smoothing: antialiased; }
+  h1 { font-size: 2rem; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 .4rem; }
+  .lead { color: var(--muted); margin: 0 0 1.4rem; font-size: .98rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .back { display: inline-block; margin-bottom: 1.1rem; font-size: .9rem; color: var(--muted); }
+  footer { margin-top: 2.5rem; color: #6f6658; font-size: .82rem; }
+
+  /* "Read the latest" hero on the index */
+  .hero-latest { display: inline-flex; align-items: baseline; gap: .55rem; margin: 0 0 2rem;
+                 background: #efe9dc; color: #26221e; border-radius: 14px; padding: .85rem 1.25rem;
+                 font-weight: 700; font-size: 1.02rem; }
+  .hero-latest:hover { text-decoration: none; opacity: .93; }
+  .hero-latest .hero-date { color: #6f6658; font-weight: 600; font-size: .9rem; }
+
+  /* Calendar index */
+  table.cal { width: 100%; border-collapse: collapse; margin: 0 0 2.4rem; table-layout: fixed; }
+  table.cal caption { caption-side: top; text-align: left; font-size: 1.3rem; font-weight: 700;
+                      letter-spacing: -0.01em; margin-bottom: .6rem; }
+  table.cal th { padding: .3rem .45rem; text-align: right; font-size: .68rem; font-weight: 600;
+                 text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  table.cal td { border: 1px solid var(--border); height: 84px; vertical-align: top; padding: .35rem .45rem; }
+  table.cal td.empty { border-color: transparent; }
+  table.cal td .num { font-size: .95rem; color: var(--muted); text-align: right; display: block; }
+  /* days with a digest stay clickable, but are not "highlighted" */
+  table.cal td.has a { display: flex; flex-direction: column; height: 100%; }
+  table.cal td.has .num { color: var(--accent); font-weight: 700; }
+  table.cal td.has .tag { margin-top: auto; font-size: .72rem; color: var(--accent); font-weight: 600; }
+  /* only the current date is highlighted */
+  table.cal td.today { background: rgba(110, 168, 254, .14); }
+  table.cal td.today .num { font-weight: 800; font-size: 1.15rem; }
+  @media (max-width: 560px) {
+    table.cal td { height: 54px; padding: .25rem; }
+    table.cal td.has .tag { display: none; } table.cal th { font-size: .58rem; }
+  }
+
+  /* Bubble digest page (dark) */
+  body.digest { background: #201d1a; color: #e9e4da; max-width: 960px; }
+  body.digest .back { color: #b8b0a4; }
+  .mast { background: #efe9dc; color: #26221e; border-radius: 24px; padding: 2rem 2.1rem 1.6rem; margin: 0 0 1.4rem; }
+  .mast-month { font-size: 3.2rem; font-weight: 800; letter-spacing: -0.03em; line-height: .9; text-transform: uppercase; }
+  .mast-title { font-size: 1.5rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; margin-top: .35rem; }
+  .mast-sub { color: #6f6658; font-size: .92rem; margin-top: .45rem; font-style: italic; }
+  .filters { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1.4rem; }
+  .filter-btn { font: inherit; cursor: pointer; -webkit-appearance: none; border: 1px solid #4a453e;
+                background: transparent; color: #d9d2c6; border-radius: 999px; padding: .4rem .95rem;
+                font-size: .82rem; font-weight: 600; letter-spacing: .02em; }
+  .filter-btn:hover { border-color: #7a7266; }
+  .filter-btn.is-active { background: #efe9dc; color: #26221e; border-color: #efe9dc; }
+  .bubble[hidden] { display: none; }
+  .bubbles { column-count: 2; column-gap: 1.2rem; }
+  .bubble { break-inside: avoid; -webkit-column-break-inside: avoid; display: inline-block; width: 100%;
+            background: #efe9dc; color: #26221e; border-radius: 22px; padding: 1.4rem 1.5rem; margin: 0 0 1.2rem; }
+  .bubble-head { display: flex; justify-content: flex-start; align-items: flex-start; gap: .5rem; }
+  .bubble-pill { display: inline-block; background: #26221e; color: #efe9dc; border-radius: 7px;
+                 padding: .3rem .7rem; font-size: .68rem; font-weight: 700; letter-spacing: .09em;
+                 text-transform: uppercase; white-space: nowrap; }
+  .bubble.tech .bubble-pill { background: var(--tech); }
+  .bubble.markets .bubble-pill { background: var(--markets); }
+  .bubble.finance .bubble-pill { background: var(--finance); }
+  .bubble-kicker { font-style: italic; text-transform: uppercase; font-size: .76rem; letter-spacing: .03em;
+                   color: #8a7f6d; margin: .9rem 0 .15rem; }
+  .bubble-title { font-size: 1.16rem; font-weight: 800; line-height: 1.25; margin: .15rem 0 .55rem; }
+  .bubble-title a { color: inherit; }
+  .bubble-body { font-size: .95rem; line-height: 1.55; color: #3a352e; margin: 0; }
+  .bubble-sources { font-size: .8rem; color: #8a7f6d; margin: .8rem 0 0; }
+  .bubble-sources a { color: #7a663f; }
+  @media (max-width: 640px) { .bubbles { column-count: 1; } .mast-month { font-size: 2.4rem; } }
+
+  /* prev / next-day navigation */
+  .daynav { display: flex; justify-content: space-between; gap: .75rem; margin: 2.2rem 0 0; }
+  .daynav a { flex: 1; background: #2b2723; border: 1px solid #3a352e; border-radius: 14px;
+              padding: .75rem 1rem; color: #e9e4da; }
+  .daynav a:hover { text-decoration: none; border-color: #6f6658; }
+  .daynav .dn-next { text-align: right; }
+  .daynav .dn-label { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em;
+                      color: #8a7f6d; }
+  .daynav .dn-date { font-weight: 700; }
+  .daynav .dn-spacer { flex: 1; }
+  /* recurring "threads" cross-links */
+  .threads { margin: 2rem 0 0; }
+  .threads-h { font-size: .72rem; text-transform: uppercase; letter-spacing: .09em; color: #8a7f6d;
+               margin: 0 0 .7rem; }
+  .thread { background: #2b2723; border: 1px solid #3a352e; border-radius: 12px; padding: .7rem .95rem;
+            margin: 0 0 .6rem; font-size: .9rem; }
+  .thread-label { font-weight: 700; color: #efe9dc; margin-right: .5rem; }
+  .thread a { margin-right: .7rem; white-space: nowrap; }
+  .filter-btn .fc { opacity: .6; font-weight: 600; margin-left: .35rem; }
+</style>
+</head>
+<body class="digest">
+<a class="back" href="index.html">← calendar</a>
+<header class="mast"><div class="mast-month">July 10</div><div class="mast-title">WSJ Digest</div><div class="mast-sub">2026 — researched from non-WSJ sources</div></header>
+<div class="filters" role="group" aria-label="Filter by category"><button class="filter-btn is-active" data-filter="all" aria-pressed="true">All<span class="fc">30</span></button><button class="filter-btn" data-filter="tech" aria-pressed="false">Tech<span class="fc">10</span></button><button class="filter-btn" data-filter="markets" aria-pressed="false">Markets<span class="fc">10</span></button><button class="filter-btn" data-filter="finance" aria-pressed="false">Finance<span class="fc">10</span></button></div>
+<div class="bubbles">
+<div class="bubble tech" data-cat="tech"><div class="bubble-head"><span class="bubble-pill">Tech</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMioAFBVV95cUxPdGJKR3ZGdVl6bFZodUZrYlFqdFhZdzVmRXBQQ0xuLUVPcnpPb3RSWUtEcHRZd1FDejFrUTZ5YmNyNEpuOGJQWmtzb3c3Rm44T1YxaHY5V08wYXB6SklkS0N3ZGYtWWZRSG9xaXZqblYteFd0VzJLYWdzUVhoajdIeGx5aXRhMEE3Nk16TzBoSkdjRmFvWHZXU2JzM01DazZm?oc=5">Exclusive | Record Companies Push to Label AI Songs on Streaming Platforms</a></div></div>
+<div class="bubble tech" data-cat="tech"><div class="bubble-head"><span class="bubble-pill">Tech</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMilAFBVV95cUxPT1lWcDVFdHo0TXNHZllYRmlmNHMzOUluVXlmc1BLZHN4cjlzM2VnSGhwekdpOVJuLWFETXJfT0FIV21aZHNjSWswUkJ5QWl3N0dBR0ZGUUZOUE1nb2NWdnl6Y0hCd2oxNlBwd3ZkcXVTSXlZa2xwTGd3T3oxelZUa3MydmpycGpZR3JWMElzRHB5aTdr?oc=5">Meta Failed to Protect Users From Addictive Apps, EU Says</a></div></div>
+<div class="bubble tech" data-cat="tech"><div class="bubble-head"><span class="bubble-pill">Tech</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMijAFBVV95cUxQZDM2dXVzUWR0WTA0bW0taVNsSUNfYmtzT0dIVlM0ZUVTRW9GeGxrUEtvblhyWGxlNXJHWVZHcGZSSmd2UHM4dWN5akY0RW44RzlWMnpSV0FpQWoxWWdMQ2VzbWdzQWxXWmFLNkRpa1ZMNVhlVV9oUExTaUlaaUhRcy1DZnBMQXBkNEc4WQ?oc=5">SK Hynix to Debut on Wall Street After Biggest Share Sale by Foreign Company</a></div></div>
+<div class="bubble tech" data-cat="tech"><div class="bubble-head"><span class="bubble-pill">Tech</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMihAFBVV95cUxQMGRjYk9NdENUVFo3MFdZYmNXM3dPMmFwZE43V1VQdkEzTXBlUmRzVG5sTDJiNUxnUXE0X0tWTHY5YUFNb3RkSnpTOGwxYXMwd3NtNDNrYUxJbWlzbnY0N1JxV1lvQnlYT1hISWZwdXMtcnp2VTlnUDZSbTJhUUxOMG84MVE?oc=5">Exclusive | OpenAI’s No. 2 Executive to Step Down in Latest Leadership Shake-Up</a></div></div>
+<div class="bubble tech" data-cat="tech"><div class="bubble-head"><span class="bubble-pill">Tech</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMingFBVV95cUxOaW8zZm1QLUNDbnlJdUVyeW41cW1PWG5LM1Z3cTI1dlFnQTJtYWI3VkVDV01GOHgwZDRveWZfaWotTEE4ZmlLd2xxQXVmTmg2b3hQVGhIc1Y0MFNTRWlJS2MxbmRjS24tNkZhaGE2N3VVcXRLNC16eTdhTUExTDlxYVNZaXNNQS0tVU9mcXBuSUpLWTV0aEJQVmpOUW1pZw?oc=5">China Weighs Limits on the AI Models American Companies Love</a></div></div>
+<div class="bubble tech" data-cat="tech"><div class="bubble-head"><span class="bubble-pill">Tech</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMitgFBVV95cUxNV192RVlFaWNVRUdIdHRrREhNNVZsWEhVX0lndi1XUTMwQ2RfQW9iTHNpdE9QTEhRNVQtb1hKbnNlUmozWi1OeUNReTZnMUFfVk5BZGx2SUlxMkM5Ujk3VDJHU2tuSXRoUTJRRW16UUU3alJWbDNyd29MOXdsXzlsRU5kTnlVZFNyZ19HQ2psOWlPTEtwMHE5V3pYVmZKWmhjdXQ5bjl3V3pBOHRpNVlYQWd4NVBoUQ?oc=5">​We Heard From More Than 1,000 Readers on State Farm’s Controversial AI Makeover</a></div></div>
+<div class="bubble tech" data-cat="tech"><div class="bubble-head"><span class="bubble-pill">Tech</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMilgFBVV95cUxQTXVaektpYm5PSWxkZ2dfcEZsRG1iM1ZvZVBURzM2NnJQdHlOM0JQa2h5cEt2bnZRSHh1Nm1xVm5na3pzWHV4QXVYcGFxRmlPdGM2UFpoVWtiZ1l0V1ozQ2Y5WEF3T2tKN0d5ZS1YS01oRTN5Qll0anN4MVZYNGJjcFoySVVENFBIUFVpU2o3Tjl3TVY0Z0E?oc=5">Apple to Spend $30 Billion on U.S.-Made Chips From Broadcom</a></div></div>
+<div class="bubble tech" data-cat="tech"><div class="bubble-head"><span class="bubble-pill">Tech</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMisAFBVV95cUxQQnhuNTk2eXJ6MFM2WmREY0pSNFN1REdpZXRFVU5FNElsTl9ZNFJ1YjFXQ084M19hN3FXWTFlY2ZDRnFLLWFXZGRybkhSa2hFbUtKRDJJUDR0QlNQcUZVZTVfOWRUUHRGenNleHFfcy1oS0NYVmN6QThLMjFBWF9qMDlwZ1hnNTE0cVAzNm1nNl9sOEVnM1Q0Vkg1WUNDQTlwUGVvWWsxRlVLVFNxS1ctVw?oc=5">China Says It Has Found Security Vulnerabilities in Anthropic’s Claude Code</a></div></div>
+<div class="bubble tech" data-cat="tech"><div class="bubble-head"><span class="bubble-pill">Tech</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMiswFBVV95cUxNek1pRE45bkJuOXNxLUlQcHNITkVDMXZNNUFCaERxdjFqU3VwcTh2ZndleC1IYXZRUDBBMlVoellRT3NTT2tUR1hscVNCZjYwWmh5R2dEdE1jZG5nQjk5Y3ViMnlYcjE5NmU3cnZ5U0YwY3ZRa3NCTFNDclBFR184UDVHbGlET0JBbFVqTjFNd2daZjU5Z0tmVVpFaWN4eVV0T0g5eTJFUVNDa2Q2QW1HVmxCcw?oc=5">AI Giants Are Handing Out Tons of Free Computing Power to Grab Startup Share</a></div></div>
+<div class="bubble tech" data-cat="tech"><div class="bubble-head"><span class="bubble-pill">Tech</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMilwFBVV95cUxQanF4aXVPSkdiLVhZcWNMOHN2WUFQYnB5Y2VoRjZoN1lTVGR3aU5jVjRNb1pjOF9laUpBMWVrOXhhd2JqOUptaVM5VC1lN1dPSDFvRktJZl9ScHU0dERMSTM3T0xNRWxCRDNjaFNwVG10QTdCQXl1ZDBIMVlybHJ6WmtsRjJacnNybDNKY1lTT2JzbGwzOHI4?oc=5">China’s Zhipu AI Shares Surge on $4 Billion Fundraising</a></div></div>
+<div class="bubble markets" data-cat="markets"><div class="bubble-head"><span class="bubble-pill">Markets</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMijAFBVV95cUxQZDM2dXVzUWR0WTA0bW0taVNsSUNfYmtzT0dIVlM0ZUVTRW9GeGxrUEtvblhyWGxlNXJHWVZHcGZSSmd2UHM4dWN5akY0RW44RzlWMnpSV0FpQWoxWWdMQ2VzbWdzQWxXWmFLNkRpa1ZMNVhlVV9oUExTaUlaaUhRcy1DZnBMQXBkNEc4WQ?oc=5">SK Hynix to Debut on Wall Street After Biggest Share Sale by Foreign Company</a></div></div>
+<div class="bubble markets" data-cat="markets"><div class="bubble-head"><span class="bubble-pill">Markets</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMif0FVX3lxTE1MYlcwQzc0Yk1obkhScHkwbzhMYnpnNGFkamhnSG9xejFiOFZuc1BaUmQ4N3lxZ3ZkZGx4dU53T0JndTVIR3NVTXpPS1ZxaFhtNkpSaEJqTjM1c3RqZ1FhUFpQMS1DZVR1QnJtc3NIcmxXTlRma1hsekpqLWpoa3M?oc=5">Pepsi Fizzles, Stocks Bubble On</a></div></div>
+<div class="bubble markets" data-cat="markets"><div class="bubble-head"><span class="bubble-pill">Markets</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMijwFBVV95cUxOYllSUnk4bDdnOThSR2RhM1k3U2F0dWJqOGVKTXNwNmJaY2FDd1A2QTNRM1duYXVFalRfUUdRZ2ZQclBXX0p0cDBKNy1Oa2RYWi1lR1dJRHhneHl0WEJiMXpzb2lZcFpOMUFYWmoxMHBheEdGZjl2Y21QNGY1ZFgzek5ENmJua293WlpidVMxWQ?oc=5">Tobacco Stocks Are Coming in From the Cold</a></div></div>
+<div class="bubble markets" data-cat="markets"><div class="bubble-head"><span class="bubble-pill">Markets</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMipAFBVV95cUxPcHMtYkVRVDV3TkZISkd3dDV2dVBUMW4yOHJsZmYtN05YTGNnVlNob1dhV0ZSQ2dZRFZfVXEtRUs1YzRELU55dFg0QUk3WWF1MFI0Q2JvUm1SaWZSRi1HZ3NtSy1sM3hoTUY0cXhXaTF1MS1yeXhEOU1UYVUwbndURmZ3eWwxVVVTOURYQmNTMXVyMUd3R3FXdG1ySDRIZ1dBZGJMRQ?oc=5">Private-Equity Firms Are Sitting on a Nine-Year Backlog</a></div></div>
+<div class="bubble markets" data-cat="markets"><div class="bubble-head"><span class="bubble-pill">Markets</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMid0FVX3lxTE1DaHRGekl1RGdnU3E0QWlITTZZczAtZGNGYmVqdEFqYmk5ajVkY2Q4d0dRRy14ZjBkbW15RGFxT1lPYS1wTkRVeUxGVEZHbkIyejhDdkxQbXR5THVCb0sxTEpWMER6dmp5MDd5cWh0N0ZyeXhfM1hR?oc=5">Samsung Fails to Impress, Amazon Issues AI Bonds and Oil Jumps | Markets P.M. for July 7</a></div></div>
+<div class="bubble markets" data-cat="markets"><div class="bubble-head"><span class="bubble-pill">Markets</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMihgFBVV95cUxPTDdWa1ktZ1o4QkpFTWF6UHZTcUJKeDIwcUJsbTYza3ZDeklRZG5md3JIWGdDZXY1OVhhTVJyRkIxVGZQMHl5VzJiTFcxNWRwQ2VkbkppUXNZYW1FbWxpcVdmOHZMX2NId0ZPa3lULXFIWUVuVFB1Vk1kVFZ3VHZhMzhobExQZw?oc=5">U.S. Stocks Rise As War Jitters Ease</a></div></div>
+<div class="bubble markets" data-cat="markets"><div class="bubble-head"><span class="bubble-pill">Markets</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMiqAFBVV95cUxQWDlmRkZBeW9PUjROcnBhMkUxRVFEZzQzM2NZV3V2Rk9TdHFUMXJuMEQ1M3FpVVNiOThNN2F6RWhmLUVLNW15TTNuTjFXZFZhR1RaVmNqMXctUEJoLXgxTHdySjA4Q2FvaHRTSHMxZF9yRWRmOUtLaGJqLVh6MlJTNnBXOHVwajA1czFGVk5CZjdjbFdmX0tWeDAyVXdDVnVSWWg4c0FiVEs?oc=5">U.S. Stocks Rise as Investors Pick AI Trade Back Up</a></div></div>
+<div class="bubble markets" data-cat="markets"><div class="bubble-head"><span class="bubble-pill">Markets</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMipwFBVV95cUxNdk9FbFpVMnRVeEliY3dDSWpuZGJwNnFwaGd1MGtZZVNUSTIydmNrX25zWk9GWE51VmdJeUc1X2NUQzgwVzVaVy1zZWdkR1drUFBYR0xhOWU3b3VsSm16Ul9OaXdjQU5iV2JYdlU5YVV6T095cXVxb1g2ODIxWkY3b0ZRTnRiNC04OEZuS3B6OGhCRUJMUzZEd1l4N1FtcERhTURfa0NvVQ?oc=5">Wall Street’s Peace Trade Collides With Renewed Iran Fighting</a></div></div>
+<div class="bubble markets" data-cat="markets"><div class="bubble-head"><span class="bubble-pill">Markets</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMifkFVX3lxTE91cVN1MXVZa0dkNFo3MzBPVEtNdjd6SUtzN01lOVMyUVNxM19WZHhSNzdxZjF0QkJua0pDSkdoekZ2VjV4bDZaTmhhQ2NPQk55TmtmMWR6OGRYWml0WkdKWXg3bjBYZFdMbmtodDBCX3hUampfTWJuc0FodWJ1QQ?oc=5">Basic Materials Roundup: Market Talk</a></div></div>
+<div class="bubble markets" data-cat="markets"><div class="bubble-head"><span class="bubble-pill">Markets</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMijgFBVV95cUxNbjBjVTI4SkF4Y0hfLWN5MXA5bkhWczB4M0l5UTUwYk5oRlNyOUFQYXZhNlh2NXp4M0otU0FqY1Q2RXdVbkFKMVFHY2ZZaXItM1JzLWFNMzdQZ2hqOWtNSW5DTVNWSVVOWnpYemxKR0R0LWdMY3hUSWp4VWJsRzNydERPbzFnZ0gxUkp2am9n?oc=5">SpaceX Shares Stumble in Nasdaq-100 Debut</a></div></div>
+<div class="bubble finance" data-cat="finance"><div class="bubble-head"><span class="bubble-pill">Finance</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMijgFBVV95cUxQakFXNHdBSmRfNE9kRXhpRmVfb25hTlhUc3hqM2pXcVRHeFU4eC11dWtDSHBWSnhnbGVTZ1dPdWsxc2tuRTNhNHgzLUwwdWlxbnFzMGRMZS1JVkJPRmlXSFAyVzdJUTBfTldSQmlEaDBUMlAwMXd1M1ZmTzZaVHVfLU5UeTFiUnExM3E5Sl9n?oc=5">3 Questions to Ask Yourself About Your First 401(k)</a></div></div>
+<div class="bubble finance" data-cat="finance"><div class="bubble-head"><span class="bubble-pill">Finance</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMibkFVX3lxTE5scHZqVkZFcEw0bHB1S2hUSllJai1Fblp6QlIzVlZoSFJGdmswcmo1OHRwcDVRLTdVTEJNR2M2X3I4TUtqS0hZb2tfMzFmaDVBVmZCSDU3S3VncnBJdTRaNXNKMW9xbjVhQW1HUEdB?oc=5">A Couple Living on One Income Wants to Buy a Home. Can They Afford It?</a></div></div>
+<div class="bubble finance" data-cat="finance"><div class="bubble-head"><span class="bubble-pill">Finance</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMipAFBVV95cUxOZUQzSkhQdnlTQ19FTXo2STFYVDZlUFU1Sl81YnNxS2l2S0Y3M1BWQ01lLXB0Mk5GcHBSR2xYaXhFY21WOFB0Q3IybW82ZXNXZnE5MnV6ZzNISm5zam93cUZMbnp5dUNzbkxJYmI3N25RSUpyX014UnFGR1MzN0xocE95aHBNbzQ5YnFTZGEtd3plZlI5X01GTDlaaFJzdVRiQ0lqVw?oc=5">Strategy Logs $8.3 Billion Loss as It Sells Off Bitcoin</a></div></div>
+<div class="bubble finance" data-cat="finance"><div class="bubble-head"><span class="bubble-pill">Finance</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMipAFBVV95cUxNWEhSU3BMTG5lM2Uxck5pVFpHY0o1MkpUd1VIUUF1akU0Y3JYT0lDeW5NaEhoRHYxSnliNmxkOUh4dm9uT3Z2WmRpTVM4R0FLRDVmVk9jNzYxTkt0ODlNWmlnY2ZGQ19HS2JxTG5SbEozXzZrX0VhOXpvbmhCc2tnbDJoS2ZQY1psZzRic0R3ZGNrTmtRVnN5NnhQTG52Z2ZXNzd3Yw?oc=5">Circle Receives Approval to Launch Crypto-Focused Bank</a></div></div>
+<div class="bubble finance" data-cat="finance"><div class="bubble-head"><span class="bubble-pill">Finance</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMivAFBVV95cUxQTjE2b0xGZGI1X0VkNTdTWmEtVUhzekN1eExjREN6ZWJSQzByN1lXMGRiX3ZKbk9hVXdJMEVSTTZkcEVYQm5TQmEzcE40bU4ydVRURG1OeUVwVzR4eXFtd2VnSEJPYzBFR0plQUxURFM1Q292bWdYbWJjMkhpSHk3V2tqdnBmUks5bTk0YVh5RHBwSWdheGktWF9KeDgza1FVWXNfWkNTNEdwWnlLVHdGRk5ZdWo2c3M2U3FsWg?oc=5">U.S., European Government Bond Yields Rise After Trump Says U.S.-Iran Ceasefire Is Over</a></div></div>
+<div class="bubble finance" data-cat="finance"><div class="bubble-head"><span class="bubble-pill">Finance</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMikgFBVV95cUxPNGE3WHp4b3ZGWmNyNGxOU1g2WU5WVDZld012dzBFcUp5aFBjZUZqTmE1akFwcUZIMzliSkN6NHQ4UmRVQ1NfUUdJTlBGVTQ5SzFUZWJVdzRqZHV0Y2lodi0tVEtocm1HQTZZcGFlaHJpUm5NM2hYcmcwV1MtZXEzXzdhcmtTSW9ib25TQlgzcmFlQQ?oc=5">The State of ESG Investing: How Dire Is It?</a></div></div>
+<div class="bubble finance" data-cat="finance"><div class="bubble-head"><span class="bubble-pill">Finance</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMipAFBVV95cUxNR0lWVkxwbkw3bXE0UUhlYS1KaDQ1X2t3SnBod2ZYRUR5c09HbDI1MWkya3B4Q2xYOWZoZXV1a1FMaXZMdVhnUFVNem5TSHUtcUk4WnpTWlY0Q0tFcEx4M1R2OV9UT2YyMlV0WWQ1dVo3VDBkbk1HX191QkUwMXEyTnJsTjhha2VCM1lqWHRwNXk0NmhZc2F1dUJUaFhtOHlqODRXVA?oc=5">Parents of Some Babies Face Delays Opening Trump Accounts</a></div></div>
+<div class="bubble finance" data-cat="finance"><div class="bubble-head"><span class="bubble-pill">Finance</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMitwFBVV95cUxQQUlfbVVqLTIwMFdlTTlGbVlfTnQ3VGltX3kwcER6NWJZVU1OZGxUVVRQMHNyLTJNdzFYaWhUWTBsQ3ZLY1VRSlFSOEZnNV9Ibzd5SUlfZDVSeDE5UlRNV3lsME5fRTNuRDVwS0s5b3Z0UUszT2EzenJndFJPUXNTNGNtQlgzWmtRTExEcjVWT1NIWTRCWGtkdURhclY1QVkydFRvOEdHLWNFdVFZSlhrM25VdG0tYVU?oc=5">How Andrea Orcel Did an End Run Around Germany to Build a Banking Giant</a></div></div>
+<div class="bubble finance" data-cat="finance"><div class="bubble-head"><span class="bubble-pill">Finance</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMijgFBVV95cUxNbjBjVTI4SkF4Y0hfLWN5MXA5bkhWczB4M0l5UTUwYk5oRlNyOUFQYXZhNlh2NXp4M0otU0FqY1Q2RXdVbkFKMVFHY2ZZaXItM1JzLWFNMzdQZ2hqOWtNSW5DTVNWSVVOWnpYemxKR0R0LWdMY3hUSWp4VWJsRzNydERPbzFnZ0gxUkp2am9n?oc=5">SpaceX Shares Stumble in Nasdaq-100 Debut</a></div></div>
+<div class="bubble finance" data-cat="finance"><div class="bubble-head"><span class="bubble-pill">Finance</span></div><div class="bubble-title"><a href="https://news.google.com/rss/articles/CBMifEFVX3lxTE1zejVOWE9rYmhiUjNpS0NjTnVWeGpYQ1RoZGVIXzI2MC1xUGg3VVlIcWQ3SS14dnNUVnZqOW05V0M2RlhoWGVRQUtXVlpMaEZJLXBoY25OOWhWNFVXY2xVWmdWNUxFdDY0TWNFLU1aQzNlUmQ3ZXM3UDFUS1c?oc=5">Treasury Yields Rise as U.S.-Iran Tensions Increase</a></div></div>
+</div>
+<section class="threads"><h2 class="threads-h">Recurring threads</h2><div class="thread"><span class="thread-label">AI boom</span><span class="thread-days">also on <a href="digest-2026-07-09.html">Jul 9</a><a href="digest-2026-07-08.html">Jul 8</a></span></div><div class="thread"><span class="thread-label">Chips</span><span class="thread-days">also on <a href="digest-2026-07-09.html">Jul 9</a><a href="digest-2026-07-08.html">Jul 8</a></span></div><div class="thread"><span class="thread-label">Crypto</span><span class="thread-days">also on <a href="digest-2026-07-09.html">Jul 9</a><a href="digest-2026-07-08.html">Jul 8</a></span></div><div class="thread"><span class="thread-label">IPOs &amp; listings</span><span class="thread-days">also on <a href="digest-2026-07-09.html">Jul 9</a><a href="digest-2026-07-08.html">Jul 8</a></span></div><div class="thread"><span class="thread-label">Iran &amp; oil</span><span class="thread-days">also on <a href="digest-2026-07-09.html">Jul 9</a><a href="digest-2026-07-08.html">Jul 8</a></span></div></section>
+<nav class="daynav"><a class="dn-prev" href="digest-2026-07-09.html"><span class="dn-label">← Older</span><span class="dn-date">Jul 9</span></a><span class="dn-spacer"></span></nav>
+<script>
+(function () {
+  var bar = document.querySelector('.filters');
+  if (!bar) return;
+  var cards = document.querySelectorAll('.bubble');
+  var buttons = bar.querySelectorAll('.filter-btn');
+  function apply(f, push) {
+    var matched = false;
+    buttons.forEach(function (b) {
+      var on = b.getAttribute('data-filter') === f;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      if (on) matched = true;
+    });
+    if (!matched) { f = 'all'; buttons[0].classList.add('is-active');
+                    buttons[0].setAttribute('aria-pressed', 'true'); }
+    cards.forEach(function (c) {
+      c.hidden = !(f === 'all' || c.getAttribute('data-cat') === f);
+    });
+    if (push) {
+      var h = f === 'all' ? ' ' : '#' + f;
+      history.replaceState(null, '', h === ' ' ? location.pathname + location.search : h);
+    }
+  }
+  bar.addEventListener('click', function (e) {
+    var btn = e.target.closest('.filter-btn');
+    if (btn) apply(btn.getAttribute('data-filter'), true);
+  });
+  apply((location.hash || '').replace('#', '') || 'all', false);
+  window.addEventListener('hashchange', function () {
+    apply((location.hash || '').replace('#', '') || 'all', false);
+  });
+})();
+</script>
+</body>
+</html>
