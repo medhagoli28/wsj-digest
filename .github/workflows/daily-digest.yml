@@ -41,6 +41,9 @@ jobs:
       - name: Generate the Pages index
         run: python3 generate_index.py   # builds ./public (index.html + digest copies)
 
+      - name: Build the search index
+        run: python3 build_search_index.py   # writes ./public/search-index.json + search.html
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
