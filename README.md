@@ -26,6 +26,9 @@ I try follow WSJ regularly but kept losing track of stories across the day — t
 - `wsj_fetch.py` — the whole tool. Stage 1 (fetch) is stdlib-only; Stage 2 (`--research`) uses the Anthropic SDK.
 - `tests/` — unit tests for the pure parse/clean helpers (`python3 -m pytest`).
 - `dedup.py` — free cross-day de-duplication (difflib similarity, no dependencies) so Stage 2 skips stories already covered.
+- `search.py` — TF-IDF search index + ranking over the archive (stdlib only; the tested reference implementation).
+- `build_search_index.py` — writes `public/search-index.json` + the search page for the static site.
+- `search.html` — client-side search page (loads the prebuilt index; vanilla JS mirrors `search.py`).
 - `.github/workflows/daily-digest.yml` — cron that publishes the **free** headline digest to GitHub Pages daily.
 - `requirements.txt` — the one dependency (`anthropic`), needed only for the optional `--research` mode.
 - `digest-<date>.md` — a generated digest (committed daily by the workflow).
@@ -96,10 +99,36 @@ python3 wsj_fetch.py --research       # Mode B: deepen each headline via Claude 
 python3 wsj_fetch.py --research --out PATH   # choose the output file
 ```
 
+## Searching the archive
+The site has a keyword search over every past digest at **`/search.html`** (linked from the calendar).
+It ranks by **relevance (TF-IDF), not recency**, and supports **date-range** and **topic** filters with
+**highlighted snippets**.
+
+**How it works (static-site search).** GitHub Pages has no backend, so search runs entirely in the browser
+against a prebuilt index:
+- `search.py` parses every `digest-<date>.md` into `{date, text, topics}` (topics reuse the existing
+  `digest_topics` tagging), builds an inverted index + TF-IDF weights, and is the tested reference ranker.
+- `build_search_index.py` writes that index to `public/search-index.json` and copies `search.html` in.
+- `search.html` loads the JSON and does tokenize → TF-IDF score → snippet client-side (vanilla JS that
+  mirrors `search.py`).
+
+**Why this approach.** The corpus is tiny (KBs), so a prebuilt JSON index + a small hand-rolled scorer is
+lighter than adding a search library like Lunr.js, needs no server, and keeps the ranking logic fully under
+pytest. (If the archive ever grows to many thousands of days, revisit — e.g. ship snippets instead of full
+text, or segment the index.)
+
+**Regenerating the index.** It rebuilds **automatically**: the daily GitHub Actions workflow runs
+`build_search_index.py` right after `generate_index.py` on every new summary, so the search index is always
+current. To rebuild locally:
+```bash
+python3 generate_index.py       # builds ./public
+python3 build_search_index.py   # writes ./public/search-index.json + search.html
+```
+
 ## Running the tests
 ```bash
 pip install pytest
-python3 -m pytest        # unit tests for clean() / parse_items() / split_summary_and_sources()
+python3 -m pytest        # wsj_fetch/dedup helpers + search indexing & ranking (tests/test_search.py)
 ```
 
 ## Legal note
