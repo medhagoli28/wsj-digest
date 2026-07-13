@@ -62,6 +62,15 @@ CSS = """
   .back { display: inline-block; margin-bottom: 1.1rem; font-size: .9rem; color: var(--muted); }
   footer { margin-top: 2.5rem; color: #6f6658; font-size: .82rem; }
 
+  /* Top-right search bar on the index */
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+            flex-wrap: wrap; margin: 0 0 .5rem; }
+  .topbar h1 { margin: 0; }
+  .topsearch input { font: inherit; color: #e9e4da; background: #2a2521; border: 1px solid #4a453e;
+                     border-radius: 999px; padding: .5rem 1rem; min-width: 210px; }
+  .topsearch input:focus { outline: none; border-color: var(--accent); }
+  @media (max-width: 520px) { .topsearch, .topsearch input { width: 100%; } }
+
   /* "Read the latest" hero on the index */
   .hero-latest { display: inline-flex; align-items: baseline; gap: .55rem; margin: 0 0 2rem;
                  background: #efe9dc; color: #26221e; border-radius: 14px; padding: .85rem 1.25rem;
@@ -403,9 +412,12 @@ def render_index(digests):
         hero = (f'  <a class="hero-latest" href="digest-{latest.isoformat()}.html">'
                 f'Read the latest digest → <span class="hero-date">{pretty_date(latest)}</span></a>\n')
     body = (
-        "  <h1>WSJ Deep Digest</h1>\n"
+        '  <div class="topbar"><h1>WSJ Deep Digest</h1>\n'
+        '    <form class="topsearch" action="search.html" method="get" role="search">\n'
+        '      <input type="search" name="q" placeholder="Search the archive…" aria-label="Search the archive">\n'
+        "    </form></div>\n"
         '  <p class="lead">Daily summaries — headlines from WSJ, depth researched from other outlets. '
-        'Pick a highlighted day, or <a href="search.html">🔍 search the archive</a>.</p>\n'
+        "Pick a highlighted day.</p>\n"
         f"{hero}{cals}\n"
         "  <footer>Generated automatically. No paywalled WSJ text is reproduced.</footer>"
     )
