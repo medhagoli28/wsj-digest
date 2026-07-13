@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Search — WSJ Deep Digest</title>
+  <style>
+    :root { color-scheme: dark; --accent: #6ea8fe; --border: #35302a; --muted: #9b9187; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+           max-width: 760px; margin: 0 auto; padding: 2.5rem 1.1rem 4rem;
+           line-height: 1.6; color: #e9e4da; background: #201d1a; -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+    .back { display: inline-block; margin-bottom: 1.1rem; font-size: .9rem; color: var(--muted); }
+    h1 { font-size: 1.9rem; letter-spacing: -0.02em; margin: 0 0 1.2rem; }
+    input, select { font: inherit; color: #e9e4da; background: #2a2521; border: 1px solid #4a453e;
+                    border-radius: 10px; padding: .6rem .8rem; }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+    #q { width: 100%; font-size: 1.05rem; margin-bottom: .8rem; }
+    .row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin-bottom: .8rem; }
+    .row label { font-size: .8rem; color: var(--muted); margin-right: .2rem; }
+    .topics { display: flex; flex-wrap: wrap; gap: .45rem; margin: .2rem 0 1.4rem; }
+    .topic { cursor: pointer; -webkit-appearance: none; border: 1px solid #4a453e; background: transparent;
+             color: #d9d2c6; border-radius: 999px; padding: .35rem .85rem; font-size: .8rem; font-weight: 600; }
+    .topic.on { background: #efe9dc; color: #26221e; border-color: #efe9dc; }
+    .count { color: var(--muted); font-size: .85rem; margin-bottom: 1rem; }
+    .result { border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.15rem; margin: 0 0 .9rem; }
+    .result .date { font-weight: 700; font-size: 1.05rem; }
+    .result .tags { color: var(--muted); font-size: .78rem; margin-left: .5rem; }
+    .result .snippet { color: #cfc7ba; font-size: .93rem; margin: .5rem 0 0; }
+    mark { background: #fbe08a; color: #26221e; padding: 0 .1em; border-radius: 3px; }
+    footer { margin-top: 2.5rem; color: #6f6658; font-size: .82rem; }
+  </style>
+</head>
+<body>
+  <a class="back" href="index.html">← calendar</a>
+  <h1>Search the archive</h1>
+
+  <input id="q" type="search" placeholder="Search summaries — e.g. bitcoin, tariffs, Nvidia…" autofocus>
+  <div class="row">
+    <label for="from">From</label><input id="from" type="date">
+    <label for="to">To</label><input id="to" type="date">
+  </div>
+  <div id="topics" class="topics"></div>
+
+  <div id="count" class="count"></div>
+  <div id="results"></div>
+  <footer>Ranked by relevance (TF-IDF) across all daily digests. Index rebuilt automatically on each new summary.</footer>
+
+  <script>
+  // ---- scorer: mirrors search.py (keep in sync) ----
+  const TOKEN = /[a-z0-9]+/g;
+  const tokenize = s => (s.toLowerCase().match(TOKEN) || []).filter(t => t.length >= 2);
+  const idf = (n, df) => Math.log((n + 1) / (df + 1)) + 1;
+  const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  function snippet(text, terms, width = 240) {
+    if (!terms.length) return esc(text.slice(0, width)) + (text.length > width ? "…" : "");
+    const alt = terms.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+    const re = new RegExp("\\b(" + alt + ")\\b", "ig");
+    const m = re.exec(text);
+    if (!m) return esc(text.slice(0, width));
+    const start = Math.max(0, m.index - Math.floor(width / 3));
+    const end = Math.min(text.length, start + width);
+    const frag = text.slice(start, end);
+    let out = "", last = 0, mm; const re2 = new RegExp(re.source, "ig");
+    while ((mm = re2.exec(frag))) {
+      out += esc(frag.slice(last, mm.index)) + "<mark>" + esc(mm[0]) + "</mark>";
+      last = mm.index + mm[0].length;
+      if (mm.index === re2.lastIndex) re2.lastIndex++;
+    }
+    out += esc(frag.slice(last));
+    return (start > 0 ? "…" : "") + out + (end < text.length ? "…" : "");
+  }
+
+  function runSearch(idx, query, from, to, topics) {
+    const passes = d =>
+      (!from || d.date >= from) && (!to || d.date <= to) &&
+      (!topics.length || d.topics.some(t => topics.includes(t)));
+    const qterms = [...new Set(tokenize(query))];
+    let ranked;
+    if (!qterms.length) {
+      ranked = idx.docs.map((d, i) => [i, 0]).filter(([i]) => passes(idx.docs[i]));
+      ranked.sort((a, b) => idx.docs[b[0]].date.localeCompare(idx.docs[a[0]].date));
+    } else {
+      const scores = new Map();
+      for (const t of qterms) {
+        const p = idx.postings[t]; if (!p) continue;
+        const w = idf(idx.N, idx.df[t] || 0);
+        for (const [doc, tf] of p) scores.set(doc, (scores.get(doc) || 0) + tf * w);
+      }
+      ranked = [...scores].filter(([i]) => passes(idx.docs[i]));
+      ranked.sort((a, b) => b[1] - a[1] || idx.docs[b[0]].date.localeCompare(idx.docs[a[0]].date));
+    }
+    return ranked.map(([i]) => ({
+      date: idx.docs[i].date, topics: idx.docs[i].topics,
+      snippet: snippet(idx.docs[i].text, qterms),
+    }));
+  }
+
+  // ---- UI wiring ----
+  let INDEX = null; const selectedTopics = new Set();
+  const $ = id => document.getElementById(id);
+
+  function update() {
+    const results = runSearch(INDEX, $("q").value, $("from").value, $("to").value, [...selectedTopics]);
+    $("count").textContent = results.length
+      ? `${results.length} result${results.length === 1 ? "" : "s"}`
+      : ($("q").value.trim() ? "No results." : "");
+    $("results").innerHTML = results.map(r => `
+      <div class="result">
+        <a class="date" href="digest-${r.date}.html">${r.date}</a>
+        <span class="tags">${r.topics.join(" · ")}</span>
+        <p class="snippet">${r.snippet}</p>
+      </div>`).join("");
+  }
+
+  function debounce(fn, ms = 120) { let t; return () => { clearTimeout(t); t = setTimeout(fn, ms); }; }
+
+  fetch("search-index.json").then(r => r.json()).then(idx => {
+    INDEX = idx;
+    $("topics").innerHTML = (idx.topics || []).map(t =>
+      `<button class="topic" data-t="${t}">${t}</button>`).join("");
+    $("topics").addEventListener("click", e => {
+      const b = e.target.closest(".topic"); if (!b) return;
+      const t = b.dataset.t;
+      if (selectedTopics.has(t)) { selectedTopics.delete(t); b.classList.remove("on"); }
+      else { selectedTopics.add(t); b.classList.add("on"); }
+      update();
+    });
+    ["input", "change"].forEach(ev => {
+      $("q").addEventListener(ev, debounce(update));
+      $("from").addEventListener(ev, update);
+      $("to").addEventListener(ev, update);
+    });
+    update();
+  }).catch(() => { $("count").textContent = "Could not load the search index."; });
+  </script>
+</body>
+</html>
