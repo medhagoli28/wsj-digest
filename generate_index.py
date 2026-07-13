@@ -405,7 +405,7 @@ def render_index(digests):
     body = (
         "  <h1>WSJ Deep Digest</h1>\n"
         '  <p class="lead">Daily summaries — headlines from WSJ, depth researched from other outlets. '
-        "Pick a highlighted day.</p>\n"
+        'Pick a highlighted day, or <a href="search.html">🔍 search the archive</a>.</p>\n'
         f"{hero}{cals}\n"
         "  <footer>Generated automatically. No paywalled WSJ text is reproduced.</footer>"
     )
