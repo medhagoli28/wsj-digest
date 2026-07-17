@@ -57,7 +57,8 @@ CSS = """
   * { box-sizing: border-box; }
   body { font-family: "Dealerplate California", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
          max-width: 740px; margin: 0 auto; padding: 2.5rem 1.1rem 4rem;
-         line-height: 1.65; letter-spacing: .04em; color: #e9e4da; background: #201d1a; -webkit-font-smoothing: antialiased; }
+         line-height: 1.65; letter-spacing: .04em; color: #e9e4da; min-height: 100vh;
+         background: radial-gradient(1100px 560px at 18% -10%, #2c2721, #201d1a 58%); -webkit-font-smoothing: antialiased; }
   h1, h2, h3, table.cal caption, .mast-month, .mast-title, .bubble-title {
     font-family: "Lumiare", Georgia, "Times New Roman", serif; letter-spacing: .05em; }
   h1 { font-size: 2rem; line-height: 1.15; margin: 0 0 .4rem; }
@@ -101,8 +102,40 @@ CSS = """
   table.cal td.today .num { font-weight: 800; font-size: 1.15rem; }
   @media (max-width: 560px) {
     table.cal td { height: 54px; padding: .25rem; }
-    table.cal td.has .tag { display: none; } table.cal th { font-size: .58rem; }
+    table.cal td.has .tag, table.cal td.has .cell-head { display: none; } table.cal th { font-size: .58rem; }
   }
+
+  /* Landing: hero, stats, featured card */
+  .hero { margin: 0 0 1.6rem; }
+  .topbar { align-items: flex-start; }
+  .brand h1 { margin: 0; }
+  .tagline { color: var(--muted); font-size: .98rem; margin: .3rem 0 0; max-width: 48ch; }
+  .stats { display: flex; flex-wrap: wrap; gap: .35rem 1.2rem; color: var(--muted);
+           font-size: .85rem; margin: 1rem 0 0; }
+  .stats b { color: #e9e4da; font-weight: 700; }
+  .featured { display: block; background: #efe9dc; color: #26221e; border-radius: 20px;
+              padding: 1.5rem 1.7rem; margin: 0 0 2.2rem; transition: transform .15s ease;
+              box-shadow: 0 18px 40px -24px rgba(0,0,0,.65); }
+  .featured:hover { text-decoration: none; transform: translateY(-2px); }
+  .featured-label { font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #8a7f6d; }
+  .featured-date { font-family: "Lumiare", Georgia, serif; font-size: 2.1rem; letter-spacing: .04em; margin: .1rem 0 .7rem; }
+  .featured-heads { list-style: none; padding: 0; margin: 0 0 .9rem; }
+  .featured-heads li { font-weight: 600; font-size: .98rem; padding: .3rem 0;
+                       border-bottom: 1px solid rgba(38, 34, 30, .12); }
+  .featured-heads li:last-child { border-bottom: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 .8rem; }
+  .chip { background: #26221e; color: #efe9dc; border-radius: 999px; padding: .22rem .62rem;
+          font-size: .66rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+  .featured-cta { font-weight: 700; color: #7a663f; }
+
+  /* Richer calendar cells */
+  table.cal td { height: 118px; }
+  table.cal td.has a { gap: .15rem; }
+  table.cal td.has .num { text-align: left; }
+  table.cal td.has:hover { border-color: var(--accent); background: rgba(110, 168, 254, .06); }
+  .cell-head { font-size: .72rem; line-height: 1.18; color: #b9b1a5; margin-top: .1rem;
+               display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  table.cal td.today { outline: 2px solid var(--accent); outline-offset: -2px; }
 
   /* Bubble digest page (dark) */
   body.digest { background: #201d1a; color: #e9e4da; max-width: 960px; }
@@ -364,7 +397,8 @@ def render_digest_page(md_text, date, older=None, newer=None, threads=None):
 
 # --- index page (calendar) --------------------------------------------------
 
-def _month_calendar(year, month, digest_dates, today=None):
+def _month_calendar(year, month, digest_dates, today=None, previews=None):
+    previews = previews or {}
     cal = calendar.Calendar(firstweekday=6)  # Sunday-first
     head = "".join(f"<th>{d}</th>" for d in WEEKDAYS)
     today_iso = today.isoformat() if today else None
@@ -383,9 +417,12 @@ def _month_calendar(year, month, digest_dates, today=None):
                 classes.append("today")
             cls = f' class="{" ".join(classes)}"' if classes else ""
             if iso in digest_dates:
+                head_txt = previews.get(iso, "")
+                preview = f'<span class="cell-head">{html.escape(head_txt)}</span>' if head_txt else ""
                 cells.append(
                     f'<td{cls}><a href="digest-{iso}.html">'
-                    f'<span class="num">{day}</span><span class="tag">read →</span></a></td>'
+                    f'<span class="num">{day}</span>{preview}'
+                    f'<span class="tag">read →</span></a></td>'
                 )
             else:
                 cells.append(f'<td{cls}><span class="num">{day}</span></td>')
@@ -401,21 +438,58 @@ def render_index(digests):
     digest_dates = {d.isoformat() for d, _ in digests}
     today = datetime.datetime.now(datetime.timezone.utc).date()
     months = sorted({(d.year, d.month) for d, _ in digests} | {(today.year, today.month)}, reverse=True)
-    cals = "\n".join(_month_calendar(y, m, digest_dates, today) for y, m in months) if months \
+
+    # Per-day top headline (for the calendar cell previews) + corpus stats.
+    previews, all_topics = {}, set()
+    for d, name in digests:
+        md = open(name, encoding="utf-8").read()
+        arts = _parse_articles(md)
+        if arts:
+            previews[d.isoformat()] = arts[0]["title"]
+        all_topics |= digest_topics(md)
+
+    cals = "\n".join(_month_calendar(y, m, digest_dates, today, previews) for y, m in months) if months \
         else "<p class='lead'>No digests yet.</p>"
-    hero = ""
+
+    featured = stats = ""
     if digests:
-        latest = digests[0][0]
-        hero = (f'  <a class="hero-latest" href="digest-{latest.isoformat()}.html">'
-                f'Read the latest digest → <span class="hero-date">{pretty_date(latest)}</span></a>\n')
+        latest, latest_name = digests[0]
+        iso = latest.isoformat()
+        lmd = open(latest_name, encoding="utf-8").read()
+        heads = "".join(f"<li>{html.escape(a['title'])}</li>" for a in _parse_articles(lmd)[:3])
+        chips = "".join(f'<span class="chip">{html.escape(t)}</span>' for t in sorted(digest_topics(lmd)))
+        featured = (
+            f'  <a class="featured" href="digest-{iso}.html">\n'
+            '    <div class="featured-label">★ Latest issue</div>\n'
+            f'    <div class="featured-date">{pretty_date(latest)}</div>\n'
+            f'    <ul class="featured-heads">{heads}</ul>\n'
+            f'    <div class="chips">{chips}</div>\n'
+            "    <div class=\"featured-cta\">Read today’s brief →</div>\n"
+            "  </a>\n"
+        )
+        oldest = digests[-1][0]
+        span = (pretty_date(oldest) if oldest == latest
+                else f"{oldest:%b} {oldest.day} – {latest:%b} {latest.day}, {latest.year}")
+        stats = (
+            '  <div class="stats">'
+            f"<span><b>{len(digests)}</b> digests</span>"
+            f"<span>{span}</span>"
+            f"<span><b>{len(all_topics)}</b> topics tracked</span>"
+            "</div>\n"
+        )
+
     body = (
-        '  <div class="topbar"><h1>WSJ Deep Digest</h1>\n'
-        '    <form class="topsearch" action="search.html" method="get" role="search">\n'
-        '      <input type="search" name="q" placeholder="Search the archive…" aria-label="Search the archive">\n'
-        "    </form></div>\n"
-        '  <p class="lead">Daily summaries — headlines from WSJ, depth researched from other outlets. '
-        "Pick a highlighted day.</p>\n"
-        f"{hero}{cals}"
+        '  <header class="hero">\n'
+        '    <div class="topbar">\n'
+        '      <div class="brand"><h1>WSJ Deep Digest</h1>\n'
+        '        <p class="tagline">Your daily brief — headlines from WSJ, depth researched from other outlets.</p></div>\n'
+        '      <form class="topsearch" action="search.html" method="get" role="search">\n'
+        '        <input type="search" name="q" placeholder="Search the archive…" aria-label="Search the archive">\n'
+        "      </form>\n"
+        "    </div>\n"
+        f"{stats}"
+        "  </header>\n"
+        f"{featured}{cals}"
     )
     return _page("WSJ Deep Digest", body)
 
