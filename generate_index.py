@@ -95,7 +95,7 @@ CSS = """
   /* days with a digest stay clickable, but are not "highlighted" */
   table.cal td.has a { display: flex; flex-direction: column; height: 100%; }
   table.cal td.has .num { color: var(--accent); font-weight: 700; }
-  table.cal td.has .tag { margin-top: auto; font-size: .72rem; color: var(--accent); font-weight: 600; }
+  table.cal td.has .tag { margin-top: auto; font-size: .85rem; color: var(--accent); font-weight: 600; }
   /* only the current date is highlighted */
   table.cal td.today { background: rgba(110, 168, 254, .14); }
   table.cal td.today .num { font-weight: 800; font-size: 1.15rem; }
@@ -393,7 +393,7 @@ def _month_calendar(year, month, digest_dates, today=None):
             if iso in digest_dates:
                 cells.append(
                     f'<td{cls}><a href="digest-{iso}.html">'
-                    f'<span class="num">{day}</span><span class="tag">Digest →</span></a></td>'
+                    f'<span class="num">{day}</span><span class="tag">read →</span></a></td>'
                 )
             else:
                 cells.append(f'<td{cls}><span class="num">{day}</span></td>')
