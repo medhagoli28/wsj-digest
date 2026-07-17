@@ -110,7 +110,6 @@ CSS = """
   .mast { background: #efe9dc; color: #26221e; border-radius: 24px; padding: 2rem 2.1rem 1.6rem; margin: 0 0 1.4rem; }
   .mast-month { font-size: 3.2rem; font-weight: 800; letter-spacing: .02em; line-height: .9; text-transform: uppercase; }
   .mast-title { font-size: 1.5rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; margin-top: .35rem; }
-  .mast-sub { color: #6f6658; font-size: .92rem; margin-top: .45rem; font-style: italic; }
   .filters { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1.4rem; }
   .filter-btn { font: inherit; cursor: pointer; -webkit-appearance: none; border: 1px solid #4a453e;
                 background: transparent; color: #d9d2c6; border-radius: 999px; padding: .4rem .95rem;
@@ -133,8 +132,6 @@ CSS = """
   .bubble-title { font-size: 1.16rem; font-weight: 800; line-height: 1.25; margin: .15rem 0 .55rem; }
   .bubble-title a { color: inherit; }
   .bubble-body { font-size: .95rem; line-height: 1.55; color: #3a352e; margin: 0; }
-  .bubble-sources { font-size: .8rem; color: #8a7f6d; margin: .8rem 0 0; }
-  .bubble-sources a { color: #7a663f; }
   @media (max-width: 640px) { .bubbles { column-count: 1; } .mast-month { font-size: 2.4rem; } }
 
   /* prev / next-day navigation */
@@ -257,14 +254,10 @@ def _bubble(n, a):
         title = f'<a href="{html.escape(a["url"])}">{title}</a>'
     kicker = f'<div class="bubble-kicker">{html.escape(a["kicker"])}</div>' if a["kicker"] else ""
     body = f'<p class="bubble-body">{_inline(html.escape(a["body"]))}</p>' if a["body"] else ""
-    src = ""
-    if a["sources"]:
-        links = ", ".join(f'<a href="{html.escape(u)}">{html.escape(name)}</a>' for name, u in a["sources"])
-        src = f'<p class="bubble-sources">Sources: {links}</p>'
     return (
         f'<div class="bubble {a["cls"]}" data-cat="{a["cls"] or "other"}">'
         f'<div class="bubble-head"><span class="bubble-pill">{html.escape(pill)}</span></div>'
-        f"{kicker}<div class=\"bubble-title\">{title}</div>{body}{src}</div>"
+        f"{kicker}<div class=\"bubble-title\">{title}</div>{body}</div>"
     )
 
 
@@ -360,8 +353,7 @@ def render_digest_page(md_text, date, older=None, newer=None, threads=None):
     cards = "\n".join(_bubble(i, a) for i, a in enumerate(articles, 1))
     mast = (
         f'<header class="mast"><div class="mast-month">{date:%B} {date.day}</div>'
-        f'<div class="mast-title">WSJ Digest</div>'
-        f'<div class="mast-sub">{date.year} — researched from non-WSJ sources</div></header>'
+        f'<div class="mast-title">WSJ Digest</div></header>'
     )
     filters = _filter_bar(articles)
     body = (f'<a class="back" href="index.html">← calendar</a>\n{mast}\n{filters}\n'
