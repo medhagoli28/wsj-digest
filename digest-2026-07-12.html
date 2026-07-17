@@ -5,13 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>WSJ Digest — July 12, 2026</title>
   <style>
+  @font-face { font-family: "Lumiare"; src: url("fonts/Lumiare.otf") format("opentype"); font-display: swap; }
+  @font-face { font-family: "Dealerplate California"; src: url("fonts/DealerplateCalifornia.otf") format("opentype"); font-display: swap; }
   :root { color-scheme: dark;
           --tech: #6ea8fe; --markets: #34d399; --finance: #fbbf24;
           --accent: #6ea8fe; --border: #35302a; --muted: #9b9187; }
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  body { font-family: "Dealerplate California", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
          max-width: 740px; margin: 0 auto; padding: 2.5rem 1.1rem 4rem;
          line-height: 1.65; color: #e9e4da; background: #201d1a; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3, table.cal caption, .mast-month, .mast-title, .bubble-title {
+    font-family: "Lumiare", Georgia, "Times New Roman", serif; }
   h1 { font-size: 2rem; line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 .4rem; }
   .lead { color: var(--muted); margin: 0 0 1.4rem; font-size: .98rem; }
   a { color: var(--accent); text-decoration: none; }
