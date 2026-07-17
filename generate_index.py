@@ -439,19 +439,17 @@ def render_index(digests):
     today = datetime.datetime.now(datetime.timezone.utc).date()
     months = sorted({(d.year, d.month) for d, _ in digests} | {(today.year, today.month)}, reverse=True)
 
-    # Per-day top headline (for the calendar cell previews) + corpus stats.
-    previews, all_topics = {}, set()
+    # Per-day top headline for the calendar cell previews.
+    previews = {}
     for d, name in digests:
-        md = open(name, encoding="utf-8").read()
-        arts = _parse_articles(md)
+        arts = _parse_articles(open(name, encoding="utf-8").read())
         if arts:
             previews[d.isoformat()] = arts[0]["title"]
-        all_topics |= digest_topics(md)
 
     cals = "\n".join(_month_calendar(y, m, digest_dates, today, previews) for y, m in months) if months \
         else "<p class='lead'>No digests yet.</p>"
 
-    featured = stats = ""
+    featured = ""
     if digests:
         latest, latest_name = digests[0]
         iso = latest.isoformat()
@@ -467,27 +465,15 @@ def render_index(digests):
             "    <div class=\"featured-cta\">Read today’s brief →</div>\n"
             "  </a>\n"
         )
-        oldest = digests[-1][0]
-        span = (pretty_date(oldest) if oldest == latest
-                else f"{oldest:%b} {oldest.day} – {latest:%b} {latest.day}, {latest.year}")
-        stats = (
-            '  <div class="stats">'
-            f"<span><b>{len(digests)}</b> digests</span>"
-            f"<span>{span}</span>"
-            f"<span><b>{len(all_topics)}</b> topics tracked</span>"
-            "</div>\n"
-        )
 
     body = (
         '  <header class="hero">\n'
         '    <div class="topbar">\n'
-        '      <div class="brand"><h1>WSJ Deep Digest</h1>\n'
-        '        <p class="tagline">Your daily brief — headlines from WSJ, depth researched from other outlets.</p></div>\n'
+        '      <div class="brand"><h1>WSJ Deep Digest</h1></div>\n'
         '      <form class="topsearch" action="search.html" method="get" role="search">\n'
         '        <input type="search" name="q" placeholder="Search the archive…" aria-label="Search the archive">\n'
         "      </form>\n"
         "    </div>\n"
-        f"{stats}"
         "  </header>\n"
         f"{featured}{cals}"
     )
