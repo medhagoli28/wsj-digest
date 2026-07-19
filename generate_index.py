@@ -361,8 +361,7 @@ def render_index(ctx):
         '    <div class="mast-title">The Deep Digest</div>\n'
         f'    <div class="mast-sub">{latest:%A} · {pretty_date(latest)} · Tech, markets &amp; finance</div>\n'
         "  </header>\n"
-        '  <nav class="navbar">\n'
-        '    <div class="navtabs"><span class="on">All</span><span>Tech</span><span>Markets</span><span>Finance</span></div>\n'
+        '  <nav class="navbar" style="justify-content:flex-end">\n'
         f"    {_searchbox(f'Search {len(digests)} issues…')}\n"
         "  </nav>\n"
         '  <div class="lead-grid">\n'
