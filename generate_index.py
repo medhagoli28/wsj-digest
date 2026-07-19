@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""Build a GitHub Pages site from the daily digests.
+"""Build the GitHub Pages site from the daily digests — "newspaper" design.
 
-- index.html: a monthly calendar; each day with a digest is a clickable cell.
-- digest-<date>.html: a dark "bubble" layout — each article is a cream card with
-  a big number, a section-colored pill, the headline, the summary, and sources.
+- index.html          : "The Archive" — masthead, today's lead + also-inside,
+                        a month calendar of past issues, recurring threads.
+- digest-<date>.html  : "The Issue" — dated masthead, category tabs, the day's
+                        stories in an editorial two-column layout with a sidebar
+                        table-of-contents and recurring threads.
 
-Plain Python + inline CSS — no frameworks, no dependencies.
+Cream editorial palette, Newsreader serif. Plain Python + inline CSS + a tiny
+category-filter script — no frameworks, no build step beyond this file.
 
 Usage:
   python3 generate_index.py            # output into ./public
-  python3 generate_index.py --out DIR  # choose the output directory
+  python3 generate_index.py --out DIR
 """
 
 import argparse
@@ -19,16 +22,15 @@ import glob
 import html
 import os
 import re
-import shutil
 
 FILENAME_RE = re.compile(r"^digest-(\d{4}-\d{2}-\d{2})\.md$")
 
 SECTION_CLASSES = [("tech", "tech"), ("markets", "markets"), ("personal finance", "finance")]
-PILL_LABEL = {"tech": "Tech", "markets": "Markets", "finance": "Finance"}
+CAT_LABEL = {"tech": "Tech", "markets": "Markets", "finance": "Finance"}
+CAT_COLOR = {"tech": "#8a5a2b", "markets": "#2f5d3a", "finance": "#5a4a8a"}
 WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 # Recurring "threads" — a digest joins a thread when its text matches any keyword.
-# Days that share a thread get cross-linked so readers can follow a story over time.
 TOPIC_RULES = [
     ("AI boom", ["artificial intelligence", "hyperscaler", "openai", "anthropic",
                  "nvidia", "claude", "chatgpt", "data center", "capex", "zhipu", "llm"]),
@@ -48,144 +50,138 @@ def digest_topics(md_text):
     """Return the set of thread labels a digest matches, based on its text."""
     return {label for label, pats in _TOPIC_RES if any(p.search(md_text) for p in pats)}
 
+
 CSS = """
-  @font-face { font-family: "Lumiare"; src: url("fonts/Lumiare.otf") format("opentype"); font-display: swap; }
-  @font-face { font-family: "Dealerplate California"; src: url("fonts/DealerplateCalifornia.otf") format("opentype"); font-display: swap; }
-  :root { color-scheme: dark;
-          --tech: #6ea8fe; --markets: #34d399; --finance: #fbbf24;
-          --accent: #6ea8fe; --border: #35302a; --muted: #9b9187; }
+  :root { --paper:#f6f1e6; --outer:#e5e1d6; --panel:#efe8d8; --ink:#1c1a15;
+          --body:#413d33; --mut:#5a554a; --mut2:#7c7568; --faint:#a49b86;
+          --rule:#d8cfbd; --rule2:#d3c9b4; --brown:#8a5a2b; }
   * { box-sizing: border-box; }
-  body { font-family: "Dealerplate California", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-         max-width: 740px; margin: 0 auto; padding: 2.5rem 1.1rem 4rem;
-         line-height: 1.65; letter-spacing: .04em; color: #e9e4da; min-height: 100vh;
-         background: radial-gradient(1100px 560px at 18% -10%, #2c2721, #201d1a 58%); -webkit-font-smoothing: antialiased; }
-  h1, h2, h3, table.cal caption, .mast-month, .mast-title, .bubble-title {
-    font-family: "Lumiare", Georgia, "Times New Roman", serif; letter-spacing: .05em; }
-  h1 { font-size: 2rem; line-height: 1.15; margin: 0 0 .4rem; }
-  .lead { color: var(--muted); margin: 0 0 1.4rem; font-size: .98rem; }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .back { display: inline-block; margin-bottom: 1.1rem; font-size: .9rem; color: var(--muted); }
-  footer { margin-top: 2.5rem; color: #6f6658; font-size: .82rem; }
+  body { margin:0; background:var(--outer); color:var(--ink);
+         font-family:'Newsreader',Georgia,'Times New Roman',serif; -webkit-font-smoothing:antialiased; }
+  a { color:inherit; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  ::selection { background:#e9d9bf; }
+  .sans { font-family:system-ui,-apple-system,'Segoe UI',sans-serif; }
+  .paper { max-width:1000px; margin:0 auto; background:var(--paper); min-height:100vh;
+           box-shadow:0 0 40px rgba(0,0,0,.12); }
 
-  /* Top-right search bar on the index */
-  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem;
-            flex-wrap: wrap; margin: 0 0 .5rem; }
-  .topbar h1 { margin: 0; }
-  .topsearch input { font: inherit; color: #e9e4da; background: #2a2521; border: 1px solid #4a453e;
-                     border-radius: 999px; padding: .5rem 1rem; min-width: 210px; }
-  .topsearch input:focus { outline: none; border-color: var(--accent); }
-  @media (max-width: 520px) { .topsearch, .topsearch input { width: 100%; } }
+  /* masthead */
+  .mast { padding:26px 44px 20px; text-align:center; border-bottom:2px solid var(--ink); }
+  .mast-top { display:flex; justify-content:space-between; align-items:center;
+              font:500 10.5px/1 system-ui,sans-serif; letter-spacing:.16em; text-transform:uppercase; color:var(--brown); }
+  .mast-title { font-weight:600; font-size:56px; letter-spacing:-.01em; margin:14px 0 9px; }
+  .mast-sub { font:400 12px/1.5 system-ui,sans-serif; letter-spacing:.24em; text-transform:uppercase; color:var(--mut); }
 
-  /* "Read the latest" hero on the index */
-  .hero-latest { display: inline-flex; align-items: baseline; gap: .55rem; margin: 0 0 2rem;
-                 background: #efe9dc; color: #26221e; border-radius: 14px; padding: .85rem 1.25rem;
-                 font-weight: 700; font-size: 1.02rem; }
-  .hero-latest:hover { text-decoration: none; opacity: .93; }
-  .hero-latest .hero-date { color: #6f6658; font-weight: 600; font-size: .9rem; }
+  /* nav / search bar */
+  .navbar { display:flex; align-items:center; justify-content:space-between; padding:11px 44px;
+            border-bottom:1px solid var(--rule); background:var(--panel); gap:12px; flex-wrap:wrap; }
+  .navtabs { display:flex; gap:22px; font:500 12px/1 system-ui,sans-serif; }
+  .navtabs span { color:var(--mut2); }
+  .navtabs .on { color:var(--ink); border-bottom:2px solid var(--ink); padding-bottom:3px; }
+  .searchbox { display:flex; align-items:center; gap:8px; border:1px solid #c9bfa8; border-radius:2px;
+               padding:6px 11px; background:var(--paper); font:400 12px system-ui,sans-serif; color:#8a8375;
+               min-width:210px; }
+  .searchbox input { border:0; background:transparent; font:inherit; color:var(--ink); width:100%; outline:none; }
 
-  /* Calendar index */
-  table.cal { width: 100%; border-collapse: collapse; margin: 0 0 2.4rem; table-layout: fixed; }
-  table.cal caption { caption-side: top; text-align: left; font-size: 1.3rem; font-weight: 700;
-                      letter-spacing: -0.01em; margin-bottom: .6rem; }
-  table.cal th { padding: .3rem .45rem; text-align: right; font-size: .68rem; font-weight: 600;
-                 text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-  table.cal td { border: 1px solid var(--border); height: 84px; vertical-align: top; padding: .35rem .45rem; }
-  table.cal td.empty { border-color: transparent; }
-  table.cal td .num { font-size: .95rem; color: var(--muted); text-align: right; display: block; }
-  /* days with a digest stay clickable, but are not "highlighted" */
-  table.cal td.has a { display: flex; flex-direction: column; height: 100%; }
-  table.cal td.has .num { color: var(--accent); font-weight: 700; }
-  table.cal td.has .tag { margin-top: auto; font-size: .85rem; color: var(--accent); font-weight: 600; }
-  /* only the current date is highlighted */
-  table.cal td.today { background: rgba(110, 168, 254, .14); }
-  table.cal td.today .num { font-weight: 800; font-size: 1.15rem; }
-  @media (max-width: 560px) {
-    table.cal td { height: 54px; padding: .25rem; }
-    table.cal td.has .tag, table.cal td.has .cell-head { display: none; } table.cal th { font-size: .58rem; }
+  /* lead + also-inside */
+  .lead-grid { display:grid; grid-template-columns:1.55fr 1fr; }
+  .lead { padding:30px 38px 32px; border-right:1px solid var(--rule); }
+  .kicker { font:600 10.5px/1 system-ui,sans-serif; letter-spacing:.16em; text-transform:uppercase;
+            color:var(--brown); margin-bottom:12px; }
+  .lead-title { font-weight:700; font-size:40px; line-height:1.04; letter-spacing:-.015em; margin-bottom:14px; }
+  .lead-sum { font-size:17px; line-height:1.5; color:var(--body); }
+  .lead-btn { display:inline-flex; gap:8px; margin-top:18px; font:600 10px/1 system-ui,sans-serif;
+              letter-spacing:.1em; text-transform:uppercase; padding:9px 13px; background:var(--ink); color:var(--paper); }
+  .lead-btn:hover { text-decoration:none; opacity:.92; }
+  .also { padding:28px 32px; }
+  .also-h { font:600 10.5px/1 system-ui,sans-serif; letter-spacing:.16em; text-transform:uppercase;
+            color:var(--mut); margin-bottom:14px; }
+  .also-item { border-top:1px solid var(--rule); padding-top:11px; margin-bottom:13px; display:block; }
+  .also-cat { font:600 9px/1 system-ui,sans-serif; letter-spacing:.08em; text-transform:uppercase; }
+  .also-title { font-size:17px; line-height:1.2; font-weight:600; margin-top:3px; }
+
+  /* archive calendar */
+  .archive { padding:24px 44px 18px; border-top:2px solid var(--ink); background:var(--panel); }
+  .archive + .archive { border-top:1px solid var(--rule); }
+  .archive-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; }
+  .archive-title { font-weight:600; font-size:23px; }
+  .archive-meta { font:400 11px system-ui,sans-serif; color:var(--mut2); letter-spacing:.04em; }
+  .weekhead { display:grid; grid-template-columns:repeat(7,1fr); gap:2px 8px; text-align:center;
+              font:600 10px/1 system-ui,sans-serif; letter-spacing:.1em; text-transform:uppercase;
+              color:var(--faint); margin-bottom:7px; }
+  .caldays { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+  .cell { min-height:60px; padding-top:5px; }
+  .cell .cnum { font-size:14px; }
+  .cell .chead { font:500 10.5px/1.2 system-ui,sans-serif; color:#4a4638; margin-top:3px; }
+  .cell.blank { border-top:1px solid var(--rule2); color:#c3b9a3; }
+  .cell.has { border-top:1.5px solid var(--ink); }
+  .cell.has .cnum { font-weight:600; }
+  .cell.lead { border-top:2.5px solid var(--brown); background:var(--paper); }
+  .cell.lead .cnum { font-weight:700; color:var(--brown); }
+  .cell.lead .chead { color:var(--ink); font-weight:600; }
+  .cell a { display:block; }
+  .cell a:hover { text-decoration:none; }
+  .cell a:hover .chead { text-decoration:underline; }
+
+  /* recurring threads (landing) */
+  .threads { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:16px 0 6px;
+             border-top:1px solid var(--rule); margin-top:12px; }
+  .threads-label { font:600 10px/1 system-ui,sans-serif; letter-spacing:.12em; text-transform:uppercase;
+                   color:var(--mut2); margin-right:4px; }
+  .thread { font-style:italic; font-size:15px; border-bottom:1px solid var(--brown); }
+
+  /* issue page */
+  .crumb { display:flex; align-items:center; justify-content:space-between; padding:12px 44px;
+           border-bottom:1px solid var(--rule); font:500 11px/1 system-ui,sans-serif;
+           letter-spacing:.04em; color:var(--mut2); gap:10px; }
+  .crumb a { color:var(--brown); }
+  .crumb .mid { letter-spacing:.16em; text-transform:uppercase; }
+  .issue-mast { padding:34px 44px 22px; text-align:center; border-bottom:2px solid var(--ink); }
+  .issue-kicker { font:500 11px/1 system-ui,sans-serif; letter-spacing:.22em; text-transform:uppercase;
+                  color:var(--brown); margin-bottom:14px; }
+  .issue-date { font-weight:700; font-size:60px; line-height:.98; letter-spacing:-.02em; }
+  .issue-sub { font-style:italic; font-size:18px; color:var(--mut); margin-top:12px; }
+  .tabbar { display:flex; align-items:center; justify-content:space-between; padding:12px 44px;
+            border-bottom:1px solid var(--rule); background:var(--panel); position:sticky; top:0; z-index:5;
+            gap:12px; flex-wrap:wrap; }
+  .tabs { display:flex; gap:8px; font:500 12px/1 system-ui,sans-serif; }
+  .tab { cursor:pointer; padding:6px 12px; border-radius:2px; border:1px solid #c9bfa8; background:transparent; color:var(--ink); }
+  .tab.on { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .issue-grid { display:grid; grid-template-columns:1.7fr 1fr; }
+  .articles { padding:30px 38px 34px; border-right:1px solid var(--rule); }
+  .article { padding:0 0 22px; margin-bottom:22px; border-bottom:1px solid var(--rule); }
+  .article:last-child { border-bottom:0; margin-bottom:0; }
+  .art-cat { font:600 10px/1 system-ui,sans-serif; letter-spacing:.14em; text-transform:uppercase; margin-bottom:8px; }
+  .art-title { font-weight:700; font-size:25px; line-height:1.1; margin-bottom:9px; }
+  .art-title a:hover { text-decoration:underline; }
+  .art-sum { font-size:15.5px; line-height:1.56; color:var(--body); }
+  .art-kicker { font-style:italic; color:var(--mut); }
+  .sidebar { padding:30px; background:var(--panel); }
+  .sidebar-sticky { position:sticky; top:72px; }
+  .side-h { font:600 10px/1 system-ui,sans-serif; letter-spacing:.14em; text-transform:uppercase;
+            color:var(--mut2); margin-bottom:14px; }
+  .toc { display:flex; flex-direction:column; gap:9px; margin-bottom:26px; }
+  .toc-item { display:flex; gap:9px; align-items:baseline; border-bottom:1px solid var(--rule2); padding-bottom:8px; }
+  .toc-n { font:600 10px system-ui,sans-serif; width:14px; flex:none; }
+  .toc-t { font-size:14px; line-height:1.25; color:var(--body); flex:1; }
+  .side-threads-h { padding-top:20px; border-top:2px solid var(--ink); }
+  .thread-row { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:11px; }
+  .thread-name { font-style:italic; font-size:16px; border-bottom:1px solid var(--brown); }
+  .thread-days { font:400 11px system-ui,sans-serif; color:var(--faint); }
+  .issue-foot { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:20px 44px;
+                border-top:2px solid var(--ink); background:var(--panel); font:500 12px/1.4 system-ui,sans-serif; }
+  .issue-foot .older { color:var(--brown); }
+  .issue-foot .home { color:var(--faint); }
+
+  @media (max-width:760px) {
+    .mast, .archive { padding-left:20px; padding-right:20px; }
+    .navbar, .crumb, .tabbar, .issue-mast, .issue-foot { padding-left:20px; padding-right:20px; }
+    .mast-title { font-size:38px; } .issue-date { font-size:40px; }
+    .lead-grid, .issue-grid { grid-template-columns:1fr; }
+    .lead, .articles { border-right:0; border-bottom:1px solid var(--rule); }
+    .cell .chead { display:none; } .cell { min-height:44px; }
+    .searchbox { min-width:0; width:100%; }
   }
-
-  /* Landing: hero, stats, featured card */
-  .hero { margin: 0 0 1.6rem; }
-  .topbar { align-items: flex-start; }
-  .brand h1 { margin: 0; }
-  .tagline { color: var(--muted); font-size: .98rem; margin: .3rem 0 0; max-width: 48ch; }
-  .stats { display: flex; flex-wrap: wrap; gap: .35rem 1.2rem; color: var(--muted);
-           font-size: .85rem; margin: 1rem 0 0; }
-  .stats b { color: #e9e4da; font-weight: 700; }
-  .featured { display: block; background: #efe9dc; color: #26221e; border-radius: 20px;
-              padding: 1.5rem 1.7rem; margin: 0 0 2.2rem; transition: transform .15s ease;
-              box-shadow: 0 18px 40px -24px rgba(0,0,0,.65); }
-  .featured:hover { text-decoration: none; transform: translateY(-2px); }
-  .featured-label { font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #8a7f6d; }
-  .featured-date { font-family: "Lumiare", Georgia, serif; font-size: 2.1rem; letter-spacing: .04em; margin: .1rem 0 .7rem; }
-  .featured-heads { list-style: none; padding: 0; margin: 0 0 .9rem; }
-  .featured-heads li { font-weight: 600; font-size: .98rem; padding: .3rem 0;
-                       border-bottom: 1px solid rgba(38, 34, 30, .12); }
-  .featured-heads li:last-child { border-bottom: 0; }
-  .chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0 0 .8rem; }
-  .chip { background: #26221e; color: #efe9dc; border-radius: 999px; padding: .22rem .62rem;
-          font-size: .66rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
-  .featured-cta { font-weight: 700; color: #7a663f; }
-
-  /* Richer calendar cells */
-  table.cal td { height: 118px; }
-  table.cal td.has a { gap: .15rem; }
-  table.cal td.has .num { text-align: left; }
-  table.cal td.has:hover { border-color: var(--accent); background: rgba(110, 168, 254, .06); }
-  .cell-head { font-size: .72rem; line-height: 1.18; color: #b9b1a5; margin-top: .1rem;
-               display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  table.cal td.today { outline: 2px solid var(--accent); outline-offset: -2px; }
-
-  /* Bubble digest page (dark) */
-  body.digest { background: #201d1a; color: #e9e4da; max-width: 960px; }
-  body.digest .back { color: #b8b0a4; }
-  .mast { background: #efe9dc; color: #26221e; border-radius: 24px; padding: 2rem 2.1rem 1.6rem; margin: 0 0 1.4rem; }
-  .mast-month { font-size: 3.2rem; font-weight: 800; letter-spacing: .02em; line-height: .9; text-transform: uppercase; }
-  .mast-title { font-size: 1.5rem; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; margin-top: .35rem; }
-  .filters { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1.4rem; }
-  .filter-btn { font: inherit; cursor: pointer; -webkit-appearance: none; border: 1px solid #4a453e;
-                background: transparent; color: #d9d2c6; border-radius: 999px; padding: .4rem .95rem;
-                font-size: .82rem; font-weight: 600; letter-spacing: .02em; }
-  .filter-btn:hover { border-color: #7a7266; }
-  .filter-btn.is-active { background: #efe9dc; color: #26221e; border-color: #efe9dc; }
-  .bubble[hidden] { display: none; }
-  .bubbles { column-count: 2; column-gap: 1.2rem; }
-  .bubble { break-inside: avoid; -webkit-column-break-inside: avoid; display: inline-block; width: 100%;
-            background: #efe9dc; color: #26221e; border-radius: 22px; padding: 1.4rem 1.5rem; margin: 0 0 1.2rem; }
-  .bubble-head { display: flex; justify-content: flex-start; align-items: flex-start; gap: .5rem; }
-  .bubble-pill { display: inline-block; background: #26221e; color: #efe9dc; border-radius: 7px;
-                 padding: .3rem .7rem; font-size: .68rem; font-weight: 700; letter-spacing: .09em;
-                 text-transform: uppercase; white-space: nowrap; }
-  .bubble.tech .bubble-pill { background: var(--tech); }
-  .bubble.markets .bubble-pill { background: var(--markets); }
-  .bubble.finance .bubble-pill { background: var(--finance); }
-  .bubble-kicker { font-style: italic; text-transform: uppercase; font-size: .76rem; letter-spacing: .03em;
-                   color: #8a7f6d; margin: .9rem 0 .15rem; }
-  .bubble-title { font-size: 1.16rem; font-weight: 800; line-height: 1.25; margin: .15rem 0 .55rem; }
-  .bubble-title a { color: inherit; }
-  .bubble-body { font-size: .95rem; line-height: 1.55; color: #3a352e; margin: 0; }
-  @media (max-width: 640px) { .bubbles { column-count: 1; } .mast-month { font-size: 2.4rem; } }
-
-  /* prev / next-day navigation */
-  .daynav { display: flex; justify-content: space-between; gap: .75rem; margin: 2.2rem 0 0; }
-  .daynav a { flex: 1; background: #2b2723; border: 1px solid #3a352e; border-radius: 14px;
-              padding: .75rem 1rem; color: #e9e4da; }
-  .daynav a:hover { text-decoration: none; border-color: #6f6658; }
-  .daynav .dn-next { text-align: right; }
-  .daynav .dn-label { display: block; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em;
-                      color: #8a7f6d; }
-  .daynav .dn-date { font-weight: 700; }
-  .daynav .dn-spacer { flex: 1; }
-  /* recurring "threads" cross-links */
-  .threads { margin: 2rem 0 0; }
-  .threads-h { font-size: .72rem; text-transform: uppercase; letter-spacing: .09em; color: #8a7f6d;
-               margin: 0 0 .7rem; }
-  .thread { background: #2b2723; border: 1px solid #3a352e; border-radius: 12px; padding: .7rem .95rem;
-            margin: 0 0 .6rem; font-size: .9rem; }
-  .thread-label { font-weight: 700; color: #efe9dc; margin-right: .5rem; }
-  .thread a { margin-right: .7rem; white-space: nowrap; }
-  .filter-btn .fc { opacity: .6; font-weight: 600; margin-left: .35rem; }
 """
 
 
@@ -193,16 +189,19 @@ def find_digests():
     """Return (date, md_filename) pairs for every digest-<date>.md, newest first."""
     found = []
     for path in glob.glob("digest-*.md"):
-        name = os.path.basename(path)
-        m = FILENAME_RE.match(name)
+        m = FILENAME_RE.match(os.path.basename(path))
         if m:
-            found.append((datetime.date.fromisoformat(m.group(1)), name))
+            found.append((datetime.date.fromisoformat(m.group(1)), os.path.basename(path)))
     found.sort(key=lambda pair: pair[0], reverse=True)
     return found
 
 
 def pretty_date(d):
     return f"{d:%B} {d.day}, {d.year}"
+
+
+def _short(d):
+    return f"{d:%b} {d.day}"
 
 
 def _section_class(text):
@@ -225,32 +224,14 @@ def _inline(text):
     return text
 
 
-def _page(title, body, body_class=""):
-    cls = f' class="{body_class}"' if body_class else ""
-    return (
-        '<!doctype html>\n<html lang="en">\n<head>\n'
-        '  <meta charset="utf-8">\n'
-        '  <meta name="viewport" content="width=device-width, initial-scale=1">\n'
-        f"  <title>{html.escape(title)}</title>\n"
-        f"  <style>{CSS}</style>\n</head>\n<body{cls}>\n{body}\n</body>\n</html>\n"
-    )
-
-
-# --- digest page (bubble layout) --------------------------------------------
-
 def _parse_articles(md):
-    """Parse a digest's Markdown into a list of article dicts, in order.
-
-    Handles both formats: researched (`**N. Title** *(tag)* — body *Sources: ...*`)
-    and free headline days (`- [Title](url)`).
-    """
+    """Parse a digest's Markdown into article dicts: researched or headline-only."""
     articles, section, sec_cls = [], "", ""
     for raw in md.splitlines():
         line = raw.strip()
         if line.startswith("## "):
             section, sec_cls = _strip_emoji(line[3:]), _section_class(line[3:])
             continue
-
         m = re.match(r"^\*\*\s*(?:\d+\.\s*)?(.+?)\s*\*\*\s*(.*)$", line)   # researched
         if m:
             title, rest = m.group(1), m.group(2)
@@ -258,281 +239,305 @@ def _parse_articles(md):
             t = re.match(r"^\*\(([^)]+)\)\*\s*(.*)$", rest)               # optional *(tag)*
             if t:
                 kicker, rest = t.group(1), t.group(2)
-            rest = re.sub(r"^[—–\-]\s*", "", rest)             # strip leading dash
-            sources, body = [], rest.strip()
+            rest = re.sub(r"^[—–\-]\s*", "", rest)
+            body = rest.strip()
             sm = re.search(r"\*Sources:\s*(.+?)\*\s*$", rest)
             if sm:
-                sources = re.findall(r"\[([^\]]+)\]\((https?://[^)]+)\)", sm.group(1))
                 body = rest[: sm.start()].strip()
-            articles.append({"section": section, "cls": sec_cls, "title": title,
-                             "url": None, "kicker": kicker, "body": body, "sources": sources})
+            articles.append({"cls": sec_cls, "title": title, "url": None, "kicker": kicker, "body": body})
             continue
-
         hm = re.match(r"^- \[([^\]]+)\]\((https?://[^)]+)\)", line)        # headline w/ link
         if hm:
-            articles.append({"section": section, "cls": sec_cls, "title": hm.group(1),
-                             "url": hm.group(2), "kicker": "", "body": "", "sources": []})
+            articles.append({"cls": sec_cls, "title": hm.group(1), "url": hm.group(2), "kicker": "", "body": ""})
             continue
         hm = re.match(r"^- \*\*(.+?)\*\*", line)                           # headline, no link
         if hm:
-            articles.append({"section": section, "cls": sec_cls, "title": hm.group(1),
-                             "url": None, "kicker": "", "body": "", "sources": []})
+            articles.append({"cls": sec_cls, "title": hm.group(1), "url": None, "kicker": "", "body": ""})
     return articles
 
 
-def _bubble(n, a):
-    pill = PILL_LABEL.get(a["cls"]) or a["section"] or "WSJ"
-    title = _inline(html.escape(a["title"]))
-    if a["url"]:
-        title = f'<a href="{html.escape(a["url"])}">{title}</a>'
-    kicker = f'<div class="bubble-kicker">{html.escape(a["kicker"])}</div>' if a["kicker"] else ""
-    body = f'<p class="bubble-body">{_inline(html.escape(a["body"]))}</p>' if a["body"] else ""
+def _cat_label(cls):
+    return CAT_LABEL.get(cls, "News")
+
+
+def _cat_color(cls):
+    return CAT_COLOR.get(cls, "#7c7568")
+
+
+def _read_minutes(articles):
+    words = sum(len((a["title"] + " " + a["body"]).split()) for a in articles)
+    return max(1, round(words / 220))
+
+
+def _searchbox(placeholder):
     return (
-        f'<div class="bubble {a["cls"]}" data-cat="{a["cls"] or "other"}">'
-        f'<div class="bubble-head"><span class="bubble-pill">{html.escape(pill)}</span></div>'
-        f"{kicker}<div class=\"bubble-title\">{title}</div>{body}</div>"
+        '<form class="searchbox" action="search.html" method="get" role="search">'
+        '<span>⌕</span>'
+        f'<input name="q" placeholder="{html.escape(placeholder)}" aria-label="Search the archive">'
+        "</form>"
     )
 
 
-def _filter_bar(articles):
-    """Filter buttons (with counts) for the categories actually present."""
-    counts = {}
-    for a in articles:
-        counts[a["cls"]] = counts.get(a["cls"], 0) + 1
-    total = len(articles)
-    buttons = ['<button class="filter-btn is-active" data-filter="all" aria-pressed="true">'
-               f'All<span class="fc">{total}</span></button>']
-    for _, cls in SECTION_CLASSES:
-        if counts.get(cls):
-            buttons.append(f'<button class="filter-btn" data-filter="{cls}" aria-pressed="false">'
-                           f'{PILL_LABEL[cls]}<span class="fc">{counts[cls]}</span></button>')
-    if len(buttons) < 3:            # nothing meaningful to filter by
-        return ""
-    return ('<div class="filters" role="group" aria-label="Filter by category">'
-            + "".join(buttons) + "</div>")
-
-
-FILTER_JS = """
-(function () {
-  var bar = document.querySelector('.filters');
-  if (!bar) return;
-  var cards = document.querySelectorAll('.bubble');
-  var buttons = bar.querySelectorAll('.filter-btn');
-  function apply(f, push) {
-    var matched = false;
-    buttons.forEach(function (b) {
-      var on = b.getAttribute('data-filter') === f;
-      b.classList.toggle('is-active', on);
-      b.setAttribute('aria-pressed', on ? 'true' : 'false');
-      if (on) matched = true;
-    });
-    if (!matched) { f = 'all'; buttons[0].classList.add('is-active');
-                    buttons[0].setAttribute('aria-pressed', 'true'); }
-    cards.forEach(function (c) {
-      c.hidden = !(f === 'all' || c.getAttribute('data-cat') === f);
-    });
-    if (push) {
-      var h = f === 'all' ? ' ' : '#' + f;
-      history.replaceState(null, '', h === ' ' ? location.pathname + location.search : h);
-    }
-  }
-  bar.addEventListener('click', function (e) {
-    var btn = e.target.closest('.filter-btn');
-    if (btn) apply(btn.getAttribute('data-filter'), true);
-  });
-  apply((location.hash || '').replace('#', '') || 'all', false);
-  window.addEventListener('hashchange', function () {
-    apply((location.hash || '').replace('#', '') || 'all', false);
-  });
-})();
-"""
-
-
-def _daynav(older, newer):
-    """Prev/next links between digest days (older on the left, newer on the right)."""
-    if not older and not newer:
-        return ""
-    if older:
-        left = (f'<a class="dn-prev" href="digest-{older.isoformat()}.html">'
-                f'<span class="dn-label">← Older</span>'
-                f'<span class="dn-date">{older:%b} {older.day}</span></a>')
-    else:
-        left = '<span class="dn-spacer"></span>'
-    if newer:
-        right = (f'<a class="dn-next" href="digest-{newer.isoformat()}.html">'
-                 f'<span class="dn-label">Newer →</span>'
-                 f'<span class="dn-date">{newer:%b} {newer.day}</span></a>')
-    else:
-        right = '<span class="dn-spacer"></span>'
-    return f'<nav class="daynav">{left}{right}</nav>'
-
-
-def _threads_block(threads):
-    """threads: list of (label, [other dates]) sharing a recurring topic with this day."""
-    if not threads:
-        return ""
-    rows = []
-    for label, dates in threads:
-        links = "".join(f'<a href="digest-{d.isoformat()}.html">{d:%b %-d}</a>'
-                        for d in sorted(dates, reverse=True))
-        rows.append(f'<div class="thread"><span class="thread-label">{html.escape(label)}</span>'
-                    f'<span class="thread-days">also on {links}</span></div>')
-    return ('<section class="threads"><h2 class="threads-h">Recurring threads</h2>'
-            + "".join(rows) + "</section>")
-
-
-def render_digest_page(md_text, date, older=None, newer=None, threads=None):
-    articles = _parse_articles(md_text)
-    cards = "\n".join(_bubble(i, a) for i, a in enumerate(articles, 1))
-    mast = (
-        f'<header class="mast"><div class="mast-month">{date:%B} {date.day}</div>'
-        f'<div class="mast-title">WSJ Digest</div></header>'
+def _page(title, body):
+    return (
+        '<!doctype html>\n<html lang="en">\n<head>\n'
+        '  <meta charset="utf-8">\n'
+        '  <meta name="viewport" content="width=device-width, initial-scale=1">\n'
+        f"  <title>{html.escape(title)}</title>\n"
+        '  <link rel="preconnect" href="https://fonts.googleapis.com">\n'
+        '  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n'
+        '  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;'
+        '0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">\n'
+        f"  <style>{CSS}</style>\n</head>\n<body>\n{body}\n</body>\n</html>\n"
     )
-    filters = _filter_bar(articles)
-    body = (f'<a class="back" href="index.html">← calendar</a>\n{mast}\n{filters}\n'
-            f'<div class="bubbles">\n{cards}\n</div>\n'
-            f'{_threads_block(threads)}\n{_daynav(older, newer)}\n<script>{FILTER_JS}</script>')
-    return _page(f"WSJ Digest — {pretty_date(date)}", body, body_class="digest")
 
 
-# --- index page (calendar) --------------------------------------------------
+# --- landing ("The Archive") ------------------------------------------------
 
-def _month_calendar(year, month, digest_dates, today=None, previews=None):
-    previews = previews or {}
+def _month_archive(year, month, ctx):
     cal = calendar.Calendar(firstweekday=6)  # Sunday-first
-    head = "".join(f"<th>{d}</th>" for d in WEEKDAYS)
-    today_iso = today.isoformat() if today else None
-    rows = []
-    for week in cal.monthdayscalendar(year, month):
-        cells = []
+    weeks = cal.monthdayscalendar(year, month)
+    n_issues = sum(1 for d, _ in ctx["digests"] if d.year == year and d.month == month)
+    head = "".join(f"<span>{d}</span>" for d in WEEKDAYS)
+    cells = []
+    for week in weeks:
         for day in week:
             if day == 0:
-                cells.append('<td class="empty"></td>')
+                cells.append('<div class="cell blank"><span class="cnum">&nbsp;</span></div>')
                 continue
             iso = f"{year:04d}-{month:02d}-{day:02d}"
-            classes = []
-            if iso in digest_dates:
-                classes.append("has")
-            if iso == today_iso:
-                classes.append("today")
-            cls = f' class="{" ".join(classes)}"' if classes else ""
-            if iso in digest_dates:
-                head_txt = previews.get(iso, "")
-                preview = f'<span class="cell-head">{html.escape(head_txt)}</span>' if head_txt else ""
-                cells.append(
-                    f'<td{cls}><a href="digest-{iso}.html">'
-                    f'<span class="num">{day}</span>{preview}'
-                    f'<span class="tag">read →</span></a></td>'
-                )
-            else:
-                cells.append(f'<td{cls}><span class="num">{day}</span></td>')
-        rows.append("<tr>" + "".join(cells) + "</tr>")
-    caption = f"{calendar.month_name[month]} {year}"
+            if iso not in ctx["dates"]:
+                cells.append(f'<div class="cell blank"><span class="cnum">{day}</span></div>')
+                continue
+            state = "lead" if iso == ctx["lead_iso"] else "has"
+            headline = html.escape(ctx["previews"].get(iso, ""))
+            cells.append(
+                f'<div class="cell {state}"><a href="digest-{iso}.html">'
+                f'<span class="cnum">{day}</span>'
+                f'<span class="chead">{headline}</span></a></div>'
+            )
     return (
-        f'<table class="cal"><caption>{caption}</caption>\n'
-        f"<thead><tr>{head}</tr></thead>\n<tbody>\n" + "\n".join(rows) + "\n</tbody></table>"
+        '  <section class="archive">\n'
+        '    <div class="archive-head">'
+        f'<div class="archive-title">The Archive — {calendar.month_name[month]} {year}</div>'
+        f'<div class="archive-meta">{n_issues} issue{"s" if n_issues != 1 else ""} this month</div></div>\n'
+        f'    <div class="weekhead">{head}</div>\n'
+        f'    <div class="caldays">{"".join(cells)}</div>\n'
+        + _threads_row(ctx) +
+        "  </section>\n"
     )
 
 
-def render_index(digests):
-    digest_dates = {d.isoformat() for d, _ in digests}
-    today = datetime.datetime.now(datetime.timezone.utc).date()
-    months = sorted({(d.year, d.month) for d, _ in digests} | {(today.year, today.month)}, reverse=True)
+def _threads_row(ctx):
+    threads = [lbl for lbl, _ in sorted(ctx["topic_days"].items(), key=lambda kv: -kv[1]) if ctx["topic_days"][lbl]]
+    if not threads:
+        return ""
+    spans = "".join(f'<span class="thread">{html.escape(t)}</span>' for t in threads[:6])
+    return f'    <div class="threads"><span class="threads-label">Recurring threads</span>{spans}</div>\n'
 
-    # Per-day top headline for the calendar cell previews.
-    previews = {}
-    for d, name in digests:
-        arts = _parse_articles(open(name, encoding="utf-8").read())
-        if arts:
-            previews[d.isoformat()] = arts[0]["title"]
 
-    cals = "\n".join(_month_calendar(y, m, digest_dates, today, previews) for y, m in months) if months \
-        else "<p class='lead'>No digests yet.</p>"
+def render_index(ctx):
+    digests = ctx["digests"]
+    latest, latest_name = digests[0]
+    arts = ctx["arts"][latest.isoformat()]
+    lead = arts[0] if arts else {"title": "", "body": "", "cls": ""}
 
-    featured = ""
-    if digests:
-        latest, latest_name = digests[0]
-        iso = latest.isoformat()
-        lmd = open(latest_name, encoding="utf-8").read()
-        heads = "".join(f"<li>{html.escape(a['title'])}</li>" for a in _parse_articles(lmd)[:3])
-        chips = "".join(f'<span class="chip">{html.escape(t)}</span>' for t in sorted(digest_topics(lmd)))
-        featured = (
-            f'  <a class="featured" href="digest-{iso}.html">\n'
-            '    <div class="featured-label">★ Latest issue</div>\n'
-            f'    <div class="featured-date">{pretty_date(latest)}</div>\n'
-            f'    <ul class="featured-heads">{heads}</ul>\n'
-            f'    <div class="chips">{chips}</div>\n'
-            "    <div class=\"featured-cta\">Read today’s brief →</div>\n"
-            "  </a>\n"
+    also_items = ""
+    for a in arts[1:4]:
+        also_items += (
+            f'    <a class="also-item" href="digest-{latest.isoformat()}.html">'
+            f'<span class="also-cat" style="color:{_cat_color(a["cls"])}">{_cat_label(a["cls"]).upper()}</span>'
+            f'<div class="also-title">{_inline(html.escape(a["title"]))}</div></a>\n'
         )
 
+    months = sorted({(d.year, d.month) for d, _ in digests}, reverse=True)
+    archives = "".join(_month_archive(y, m, ctx) for y, m in months)
+
     body = (
-        '  <header class="hero">\n'
-        '    <div class="topbar">\n'
-        '      <div class="brand"><h1>WSJ Deep Digest</h1></div>\n'
-        '      <form class="topsearch" action="search.html" method="get" role="search">\n'
-        '        <input type="search" name="q" placeholder="Search the archive…" aria-label="Search the archive">\n'
-        "      </form>\n"
-        "    </div>\n"
+        '<div class="paper">\n'
+        '  <header class="mast">\n'
+        '    <div class="mast-top"><span>Shared Daily Digest</span>'
+        f'<span>Est. 2026 · No. {len(digests)}</span></div>\n'
+        '    <div class="mast-title">The Deep Digest</div>\n'
+        f'    <div class="mast-sub">{latest:%A} · {pretty_date(latest)} · Tech, markets &amp; finance</div>\n'
         "  </header>\n"
-        f"{featured}{cals}"
+        '  <nav class="navbar">\n'
+        '    <div class="navtabs"><span class="on">All</span><span>Tech</span><span>Markets</span><span>Finance</span></div>\n'
+        f"    {_searchbox(f'Search {len(digests)} issues…')}\n"
+        "  </nav>\n"
+        '  <div class="lead-grid">\n'
+        f'    <a class="lead" href="digest-{latest.isoformat()}.html">\n'
+        '      <div class="kicker">◆ Today’s lead</div>\n'
+        f'      <div class="lead-title">{_inline(html.escape(lead["title"]))}</div>\n'
+        + (f'      <div class="lead-sum">{_inline(html.escape(lead["body"]))}</div>\n' if lead["body"] else "")
+        + '      <span class="lead-btn">Read today’s brief →</span>\n'
+        "    </a>\n"
+        '    <div class="also">\n'
+        f'      <div class="also-h">Also inside · {len(arts)} stories</div>\n'
+        f"{also_items}"
+        "    </div>\n"
+        "  </div>\n"
+        f"{archives}"
+        "</div>\n"
     )
-    return _page("WSJ Deep Digest", body)
+    return _page("The Deep Digest", body)
+
+
+# --- issue page ("The Issue") -----------------------------------------------
+
+def render_issue(date, ctx):
+    iso = date.isoformat()
+    arts = ctx["arts"][iso]
+    no = ctx["issue_no"][iso]
+    minutes = _read_minutes(arts)
+
+    counts = {"all": len(arts)}
+    for c in ("tech", "markets", "finance"):
+        counts[c] = sum(1 for a in arts if a["cls"] == c)
+    tabs = "".join(
+        f'<span class="tab{" on" if key == "all" else ""}" data-key="{key}">{lbl} · {counts[key]}</span>'
+        for key, lbl in [("all", "All"), ("tech", "Tech"), ("markets", "Markets"), ("finance", "Finance")]
+        if key == "all" or counts[key]
+    )
+
+    articles_html = ""
+    for a in arts:
+        title = _inline(html.escape(a["title"]))
+        if a["url"]:
+            title = f'<a href="{html.escape(a["url"])}">{title}</a>'
+        kick = f'<span class="art-kicker">({html.escape(a["kicker"])}) </span>' if a["kicker"] else ""
+        summ = f'<div class="art-sum">{kick}{_inline(html.escape(a["body"]))}</div>' if a["body"] else ""
+        articles_html += (
+            f'      <article class="article" data-cat="{a["cls"] or "news"}">\n'
+            f'        <div class="art-cat" style="color:{_cat_color(a["cls"])}">{_cat_label(a["cls"]).upper()}</div>\n'
+            f'        <div class="art-title">{title}</div>\n'
+            f"        {summ}\n"
+            "      </article>\n"
+        )
+
+    toc = "".join(
+        f'<div class="toc-item"><span class="toc-n" style="color:{_cat_color(a["cls"])}">{i}</span>'
+        f'<span class="toc-t">{html.escape(a["title"])}</span></div>'
+        for i, a in enumerate(arts, 1)
+    )
+
+    threads = sorted(ctx["topics"][iso], key=lambda t: -ctx["topic_days"][t])
+    thread_rows = "".join(
+        f'<div class="thread-row"><span class="thread-name">{html.escape(t)}</span>'
+        f'<span class="thread-days">{ctx["topic_days"][t]} day{"s" if ctx["topic_days"][t] != 1 else ""}</span></div>'
+        for t in threads
+    )
+
+    older = ctx["older"].get(iso)
+    newer = ctx["newer"].get(iso)
+    crumb_nav = ""
+    if older:
+        crumb_nav += f'<a href="digest-{older}.html">‹ {_short(datetime.date.fromisoformat(older))}</a>'
+    if newer:
+        crumb_nav += f' &nbsp;·&nbsp; <a href="digest-{newer}.html">{_short(datetime.date.fromisoformat(newer))} ›</a>'
+
+    foot_older = ""
+    if older:
+        od = datetime.date.fromisoformat(older)
+        top = ctx["previews"].get(older, "")
+        foot_older = f'<a class="older" href="digest-{older}.html">← Older · {pretty_date(od)} · {html.escape(top)}</a>'
+
+    body = (
+        '<div class="paper">\n'
+        '  <div class="crumb">\n'
+        '    <a href="index.html">← The Archive</a>\n'
+        '    <span class="mid">The Deep Digest</span>\n'
+        f'    <span>{crumb_nav or "&nbsp;"}</span>\n'
+        "  </div>\n"
+        '  <header class="issue-mast">\n'
+        f'    <div class="issue-kicker">{date:%A} Issue · No. {no}</div>\n'
+        f'    <div class="issue-date">{pretty_date(date)}</div>\n'
+        f'    <div class="issue-sub">{len(arts)} stories across tech, markets &amp; finance — a {minutes}-minute read.</div>\n'
+        "  </header>\n"
+        f'  <div class="tabbar"><div class="tabs">{tabs}</div>{_searchbox("Search the archive…")}</div>\n'
+        '  <div class="issue-grid">\n'
+        '    <div class="articles">\n'
+        f"{articles_html}"
+        "    </div>\n"
+        '    <aside class="sidebar"><div class="sidebar-sticky">\n'
+        f'      <div class="side-h">In this issue · {len(arts)} stories</div>\n'
+        f'      <div class="toc">{toc}</div>\n'
+        + (f'      <div class="side-h side-threads-h">Recurring threads</div>\n{thread_rows}\n' if thread_rows else "")
+        + "    </div></aside>\n"
+        "  </div>\n"
+        '  <div class="issue-foot">\n'
+        f'    <span>{foot_older or "&nbsp;"}</span>\n'
+        '    <a class="home" href="index.html">Back to The Archive</a>\n'
+        "  </div>\n"
+        "</div>\n"
+        "<script>(function(){var tabs=document.querySelectorAll('.tab'),arts=document.querySelectorAll('.article');"
+        "tabs.forEach(function(t){t.addEventListener('click',function(){var k=t.dataset.key;"
+        "tabs.forEach(function(x){x.classList.toggle('on',x===t)});"
+        "arts.forEach(function(a){a.style.display=(k==='all'||a.dataset.cat===k)?'':'none'})})})})();</script>\n"
+    )
+    return _page(f"The Deep Digest — {pretty_date(date)}", body)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", default="public", help="output directory (default: public)")
     args = ap.parse_args()
-
     os.makedirs(args.out, exist_ok=True)
 
-    # publish the custom fonts alongside the pages (referenced by @font-face)
-    fonts_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
-    if os.path.isdir(fonts_src):
-        shutil.copytree(fonts_src, os.path.join(args.out, "fonts"), dirs_exist_ok=True)
-
     digests = find_digests()   # newest first
+    if not digests:
+        with open(os.path.join(args.out, "index.html"), "w", encoding="utf-8") as f:
+            f.write(_page("The Deep Digest", '<div class="paper"><header class="mast">'
+                          '<div class="mast-title">The Deep Digest</div></header></div>'))
+        print("[no digests]")
+        return
 
-    # First pass: read text + derive each day's recurring-topic labels.
-    texts = {date: open(name, encoding="utf-8").read() for date, name in digests}
-    topics = {date: digest_topics(texts[date]) for date, _ in digests}
+    # Build a shared context once (read each file a single time).
+    arts, topics = {}, {}
+    for d, name in digests:
+        md = open(name, encoding="utf-8").read()
+        arts[d.isoformat()] = _parse_articles(md)
+        topics[d.isoformat()] = digest_topics(md)
+
     topic_days = {}
-    for date, labels in topics.items():
-        for label in labels:
-            topic_days.setdefault(label, set()).add(date)
+    for tset in topics.values():
+        for t in tset:
+            topic_days[t] = topic_days.get(t, 0) + 1
 
-    for i, (date, _) in enumerate(digests):
-        newer = digests[i - 1][0] if i > 0 else None
-        older = digests[i + 1][0] if i < len(digests) - 1 else None
-        threads = []
-        for label in topics[date]:
-            others = topic_days[label] - {date}
-            if others:
-                threads.append((label, others))
-        # strongest threads first (shared by the most days), then alphabetical; keep it tidy
-        threads.sort(key=lambda t: (-len(t[1]), t[0]))
-        threads = threads[:5]
-        with open(os.path.join(args.out, f"digest-{date.isoformat()}.html"), "w", encoding="utf-8") as f:
-            f.write(render_digest_page(texts[date], date, older=older, newer=newer, threads=threads))
+    ordered = sorted(d for d, _ in digests)         # oldest -> newest
+    issue_no = {d.isoformat(): i + 1 for i, d in enumerate(ordered)}
+    previews = {d.isoformat(): (arts[d.isoformat()][0]["title"] if arts[d.isoformat()] else "")
+                for d, _ in digests}
+    # newer = more recent neighbour, older = previous
+    older, newer = {}, {}
+    for i, (d, _) in enumerate(digests):
+        if i < len(digests) - 1:
+            older[d.isoformat()] = digests[i + 1][0].isoformat()
+        if i > 0:
+            newer[d.isoformat()] = digests[i - 1][0].isoformat()
+
+    ctx = {
+        "digests": digests, "dates": {d.isoformat() for d, _ in digests},
+        "arts": arts, "topics": topics, "topic_days": topic_days,
+        "issue_no": issue_no, "previews": previews, "older": older, "newer": newer,
+        "lead_iso": digests[0][0].isoformat(),
+    }
+
+    for d, _ in digests:
+        with open(os.path.join(args.out, f"digest-{d.isoformat()}.html"), "w", encoding="utf-8") as f:
+            f.write(render_issue(d, ctx))
 
     with open(os.path.join(args.out, "index.html"), "w", encoding="utf-8") as f:
-        f.write(render_index(digests))
+        f.write(render_index(ctx))
 
-    # Stable bookmarkable URL that always points at the newest digest.
-    if digests:
-        latest_iso = digests[0][0].isoformat()
-        redirect = (
-            '<!doctype html><html lang="en"><head><meta charset="utf-8">'
-            f'<meta http-equiv="refresh" content="0; url=digest-{latest_iso}.html">'
-            f'<link rel="canonical" href="digest-{latest_iso}.html">'
-            '<title>Latest WSJ Deep Digest</title></head>'
-            f'<body><a href="digest-{latest_iso}.html">Latest digest →</a></body></html>\n'
-        )
-        with open(os.path.join(args.out, "latest.html"), "w", encoding="utf-8") as f:
-            f.write(redirect)
+    latest_iso = digests[0][0].isoformat()
+    with open(os.path.join(args.out, "latest.html"), "w", encoding="utf-8") as f:
+        f.write('<!doctype html><meta charset="utf-8">'
+                f'<meta http-equiv="refresh" content="0; url=digest-{latest_iso}.html">'
+                f'<link rel="canonical" href="digest-{latest_iso}.html">'
+                f'<a href="digest-{latest_iso}.html">Latest issue →</a>')
 
-    print(f"[wrote {args.out}/index.html + latest.html + {len(digests)} digest page(s)]")
+    print(f"[wrote {args.out}/index.html + latest.html + {len(digests)} issue page(s)]")
 
 
 if __name__ == "__main__":
