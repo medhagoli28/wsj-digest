@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Deep Digest — July 20, 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
+  <style>
+  :root { --paper:#f6f1e6; --outer:#e5e1d6; --panel:#efe8d8; --ink:#1c1a15;
+          --body:#413d33; --mut:#5a554a; --mut2:#7c7568; --faint:#a49b86;
+          --rule:#d8cfbd; --rule2:#d3c9b4; --brown:#8a5a2b; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--outer); color:var(--ink);
+         font-family:'Newsreader',Georgia,'Times New Roman',serif; -webkit-font-smoothing:antialiased; }
+  a { color:inherit; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  ::selection { background:#e9d9bf; }
+  .sans { font-family:system-ui,-apple-system,'Segoe UI',sans-serif; }
+  .paper { max-width:1000px; margin:0 auto; background:var(--paper); min-height:100vh;
+           box-shadow:0 0 40px rgba(0,0,0,.12); }
+
+  /* masthead */
+  .mast { padding:26px 44px 20px; text-align:center; border-bottom:2px solid var(--ink); }
+  .mast-top { display:flex; justify-content:space-between; align-items:center;
+              font:500 10.5px/1 system-ui,sans-serif; letter-spacing:.16em; text-transform:uppercase; color:var(--brown); }
+  .mast-title { font-weight:600; font-size:56px; letter-spacing:-.01em; margin:14px 0 9px; }
+  .mast-sub { font:400 12px/1.5 system-ui,sans-serif; letter-spacing:.24em; text-transform:uppercase; color:var(--mut); }
+
+  /* nav / search bar */
+  .navbar { display:flex; align-items:center; justify-content:space-between; padding:11px 44px;
+            border-bottom:1px solid var(--rule); background:var(--panel); gap:12px; flex-wrap:wrap; }
+  .navtabs { display:flex; gap:22px; font:500 12px/1 system-ui,sans-serif; }
+  .navtabs span { color:var(--mut2); }
+  .navtabs .on { color:var(--ink); border-bottom:2px solid var(--ink); padding-bottom:3px; }
+  .searchbox { display:flex; align-items:center; gap:8px; border:1px solid #c9bfa8; border-radius:2px;
+               padding:6px 11px; background:var(--paper); font:400 12px system-ui,sans-serif; color:#8a8375;
+               min-width:210px; }
+  .searchbox input { border:0; background:transparent; font:inherit; color:var(--ink); width:100%; outline:none; }
+
+  /* lead + also-inside */
+  .lead-grid { display:grid; grid-template-columns:1.55fr 1fr; }
+  .lead { padding:30px 38px 32px; border-right:1px solid var(--rule); }
+  .kicker { font:600 10.5px/1 system-ui,sans-serif; letter-spacing:.16em; text-transform:uppercase;
+            color:var(--brown); margin-bottom:12px; }
+  .lead-title { font-weight:700; font-size:40px; line-height:1.04; letter-spacing:-.015em; margin-bottom:14px; }
+  .lead-sum { font-size:17px; line-height:1.5; color:var(--body); }
+  .lead-btn { display:inline-flex; gap:8px; margin-top:18px; font:600 10px/1 system-ui,sans-serif;
+              letter-spacing:.1em; text-transform:uppercase; padding:9px 13px; background:var(--ink); color:var(--paper); }
+  .lead-btn:hover { text-decoration:none; opacity:.92; }
+  .also { padding:28px 32px; }
+  .also-h { font:600 10.5px/1 system-ui,sans-serif; letter-spacing:.16em; text-transform:uppercase;
+            color:var(--mut); margin-bottom:14px; }
+  .also-item { border-top:1px solid var(--rule); padding-top:11px; margin-bottom:13px; display:block; }
+  .also-cat { font:600 9px/1 system-ui,sans-serif; letter-spacing:.08em; text-transform:uppercase; }
+  .also-title { font-size:17px; line-height:1.2; font-weight:600; margin-top:3px; }
+
+  /* archive calendar */
+  .archive { padding:24px 44px 18px; border-top:2px solid var(--ink); background:var(--panel); }
+  .archive + .archive { border-top:1px solid var(--rule); }
+  .archive-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; }
+  .archive-title { font-weight:600; font-size:23px; }
+  .archive-meta { font:400 11px system-ui,sans-serif; color:var(--mut2); letter-spacing:.04em; }
+  .weekhead { display:grid; grid-template-columns:repeat(7,1fr); gap:2px 8px; text-align:center;
+              font:600 10px/1 system-ui,sans-serif; letter-spacing:.1em; text-transform:uppercase;
+              color:var(--faint); margin-bottom:7px; }
+  .caldays { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+  .cell { min-height:60px; padding-top:5px; }
+  .cell .cnum { font-size:14px; }
+  .cell .chead { font:500 10.5px/1.2 system-ui,sans-serif; color:#4a4638; margin-top:3px; }
+  .cell.blank { border-top:1px solid var(--rule2); color:#c3b9a3; }
+  .cell.has { border-top:1.5px solid var(--ink); }
+  .cell.has .cnum { font-weight:600; }
+  .cell.lead { border-top:2.5px solid var(--brown); background:var(--paper); }
+  .cell.lead .cnum { font-weight:700; color:var(--brown); }
+  .cell.lead .chead { color:var(--ink); font-weight:600; }
+  .cell a { display:block; }
+  .cell a:hover { text-decoration:none; }
+  .cell a:hover .chead { text-decoration:underline; }
+
+  /* recurring threads (landing) */
+  .threads { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:16px 0 6px;
+             border-top:1px solid var(--rule); margin-top:12px; }
+  .threads-label { font:600 10px/1 system-ui,sans-serif; letter-spacing:.12em; text-transform:uppercase;
+                   color:var(--mut2); margin-right:4px; }
+  .thread { font-style:italic; font-size:15px; border-bottom:1px solid var(--brown); }
+
+  /* issue page */
+  .crumb { display:flex; align-items:center; justify-content:space-between; padding:12px 44px;
+           border-bottom:1px solid var(--rule); font:500 11px/1 system-ui,sans-serif;
+           letter-spacing:.04em; color:var(--mut2); gap:10px; }
+  .crumb a { color:var(--brown); }
+  .crumb .mid { letter-spacing:.16em; text-transform:uppercase; }
+  .issue-mast { padding:34px 44px 22px; text-align:center; border-bottom:2px solid var(--ink); }
+  .issue-kicker { font:500 11px/1 system-ui,sans-serif; letter-spacing:.22em; text-transform:uppercase;
+                  color:var(--brown); margin-bottom:14px; }
+  .issue-date { font-weight:700; font-size:60px; line-height:.98; letter-spacing:-.02em; }
+  .issue-sub { font-style:italic; font-size:18px; color:var(--mut); margin-top:12px; }
+  .tabbar { display:flex; align-items:center; justify-content:space-between; padding:12px 44px;
+            border-bottom:1px solid var(--rule); background:var(--panel); position:sticky; top:0; z-index:5;
+            gap:12px; flex-wrap:wrap; }
+  .tabs { display:flex; gap:8px; font:500 12px/1 system-ui,sans-serif; }
+  .tab { cursor:pointer; padding:6px 12px; border-radius:2px; border:1px solid #c9bfa8; background:transparent; color:var(--ink); }
+  .tab.on { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .issue-grid { display:grid; grid-template-columns:1.7fr 1fr; }
+  .articles { padding:30px 38px 34px; border-right:1px solid var(--rule); }
+  .article { padding:0 0 22px; margin-bottom:22px; border-bottom:1px solid var(--rule); }
+  .article:last-child { border-bottom:0; margin-bottom:0; }
+  .art-cat { font:600 10px/1 system-ui,sans-serif; letter-spacing:.14em; text-transform:uppercase; margin-bottom:8px; }
+  .art-title { font-weight:700; font-size:25px; line-height:1.1; margin-bottom:9px; }
+  .art-title a:hover { text-decoration:underline; }
+  .art-sum { font-size:15.5px; line-height:1.56; color:var(--body); }
+  .art-kicker { font-style:italic; color:var(--mut); }
+  .sidebar { padding:30px; background:var(--panel); }
+  .sidebar-sticky { position:sticky; top:72px; }
+  .side-h { font:600 10px/1 system-ui,sans-serif; letter-spacing:.14em; text-transform:uppercase;
+            color:var(--mut2); margin-bottom:14px; }
+  .toc { display:flex; flex-direction:column; gap:9px; margin-bottom:26px; }
+  .toc-item { display:flex; gap:9px; align-items:baseline; border-bottom:1px solid var(--rule2); padding-bottom:8px; }
+  .toc-n { font:600 10px system-ui,sans-serif; width:14px; flex:none; }
+  .toc-t { font-size:14px; line-height:1.25; color:var(--body); flex:1; }
+  .side-threads-h { padding-top:20px; border-top:2px solid var(--ink); }
+  .thread-row { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:11px; }
+  .thread-name { font-style:italic; font-size:16px; border-bottom:1px solid var(--brown); }
+  .thread-days { font:400 11px system-ui,sans-serif; color:var(--faint); }
+  .issue-foot { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:20px 44px;
+                border-top:2px solid var(--ink); background:var(--panel); font:500 12px/1.4 system-ui,sans-serif; }
+  .issue-foot .older { color:var(--brown); }
+  .issue-foot .home { color:var(--faint); }
+
+  @media (max-width:760px) {
+    .mast, .archive { padding-left:20px; padding-right:20px; }
+    .navbar, .crumb, .tabbar, .issue-mast, .issue-foot { padding-left:20px; padding-right:20px; }
+    .mast-title { font-size:38px; } .issue-date { font-size:40px; }
+    .lead-grid, .issue-grid { grid-template-columns:1fr; }
+    .lead, .articles { border-right:0; border-bottom:1px solid var(--rule); }
+    .cell .chead { display:none; } .cell { min-height:44px; }
+    .searchbox { min-width:0; width:100%; }
+  }
+</style>
+</head>
+<body>
+<div class="paper">
+  <div class="crumb">
+    <a href="index.html">← The Archive</a>
+    <span class="mid">The Deep Digest</span>
+    <span><a href="digest-2026-07-19.html">‹ Jul 19</a></span>
+  </div>
+  <header class="issue-mast">
+    <div class="issue-kicker">Monday Issue · No. 13</div>
+    <div class="issue-date">July 20, 2026</div>
+    <div class="issue-sub">13 stories across tech, markets &amp; finance — a 9-minute read.</div>
+  </header>
+  <div class="tabbar"><div class="tabs"><span class="tab on" data-key="all">All · 13</span><span class="tab" data-key="tech">Tech · 4</span><span class="tab" data-key="markets">Markets · 6</span><span class="tab" data-key="finance">Finance · 3</span></div><form class="searchbox" action="search.html" method="get" role="search"><span>⌕</span><input name="q" placeholder="Search the archive…" aria-label="Search the archive"></form></div>
+  <div class="issue-grid">
+    <div class="articles">
+      <article class="article" data-cat="tech">
+        <div class="art-cat" style="color:#8a5a2b">TECH</div>
+        <div class="art-title">Alibaba Says New AI Model Is Just Second to Anthropic&#x27;s Fable 5</div>
+        <div class="art-sum">At the World AI Conference in Shanghai (around July 19-20, 2026), Alibaba previewed Qwen3.8 (available as Qwen3.8-Max-Preview), a sparse Mixture-of-Experts model with roughly 2.4 trillion parameters that the company calls &quot;second only&quot; to Anthropic&#x27;s Claude Fable 5 among frontier models. It is Alibaba&#x27;s first multimodal model to exceed one trillion parameters, handling text, images, video, and documents, and was rolled out on its Token Plan subscription and Qoder/QoderWork agentic platforms. The launch is shadowed by controversy: Anthropic told US senators and White House officials that operators tied to the Qwen lab used nearly 25,000 fraudulent accounts to run about 29 million queries against Claude between April and June 2026, allegedly to distill its software-engineering and agentic reasoning capabilities. Alibaba has not publicly responded to the distillation allegations.</div>
+      </article>
+      <article class="article" data-cat="tech">
+        <div class="art-cat" style="color:#8a5a2b">TECH</div>
+        <div class="art-title">The CEO Trying to Fix PayPal Has a New Option: Sell It for Billions</div>
+        <div class="art-sum">PayPal, now led by new president and CEO Enrique Lores (formerly of HP), received a joint takeover offer from Stripe and private-equity firm Advent International valued at roughly $53.4 billion, or about $60.50 per share in cash, sending PayPal stock up about 17%. Stripe, itself valued near $159 billion, had reportedly explored acquiring PayPal as early as February 2026 in preliminary talks. PayPal&#x27;s board was expected to meet as soon as July 20, 2026 to weigh the bid, giving Lores a strategic choice between continuing a turnaround (which has included winding down the PayPal Ventures arm amid a broader restructuring) or selling. Analysts are debating whether a buyout is the best path given competitive pressure in payments from Apple, Block, and others.</div>
+      </article>
+      <article class="article" data-cat="tech">
+        <div class="art-cat" style="color:#8a5a2b">TECH</div>
+        <div class="art-title">Pastors Using AI to Help Write Sermons Grapple With Where to Draw the Line</div>
+        <div class="art-sum">A growing share of clergy, roughly a quarter of pastors (up from about 12% in 2024), now use AI tools to assist sermon preparation, prompting debate over acceptable limits. The emerging consensus treats AI as a research and brainstorming partner (surfacing commentary, sketching outlines, exploring theological angles or pastoral-care questions) rather than as the voice in the pulpit. Critics warn that outsourcing the work risks eroding the pastoral relationship, arguing an algorithm cannot know a congregation&#x27;s miscarriages, divorces, or abuse, nor &quot;preach through tears,&quot; and one survey found 79% of pastors worry about AI substituting for God. Prominent voices have drawn firm lines: Pope Leo urged priests to resist &quot;the temptation to prepare homilies with artificial intelligence.&quot; The tension is framed as fundamentally theological, about authenticity and lived experience, not merely technological.</div>
+      </article>
+      <article class="article" data-cat="tech">
+        <div class="art-cat" style="color:#8a5a2b">TECH</div>
+        <div class="art-title">IBM&#x27;s Big Blue Blues | Technology for July 19</div>
+        <div class="art-sum">This WSJ tech recap centers on IBM&#x27;s historic stock collapse: on July 14, 2026, shares cratered about 25%, the worst single-day drop in the company&#x27;s roughly 115-year history, after a surprise second-quarter earnings warning. IBM reported adjusted earnings of $2.93 per share on revenue of $17.2 billion, missing analyst expectations of about $3.01 and $17.86 billion, with total revenue growing only around 1% year over year. CEO Arvind Krishna admitted in a letter to investors that &quot;we did not adapt and move quickly enough&quot; and that numerous large deals failed to close on expected timelines, blaming weakness in software and infrastructure as clients redirected spending toward AI-related hardware such as memory chips amid supply constraints. Analysts framed the plunge as a warning sign about a possible &quot;dual bubble&quot; in AI and broader markets, since the pain came not from falling AI spending but from that spending shifting toward hardware while IBM missed mainframe targets.</div>
+      </article>
+      <article class="article" data-cat="markets">
+        <div class="art-cat" style="color:#2f5d3a">MARKETS</div>
+        <div class="art-title">China State-Owned Funds Buy Nearly $9 Billion in Shares to Support Market</div>
+        <div class="art-sum">Two state-backed &quot;national team&quot; firms disclosed roughly 60 billion yuan (about US$8.9 billion) in mainland stock purchases over the weekend of July 18-19, 2026, to arrest a sharp equity sell-off. China Reform Holdings said it spent more than 50 billion yuan buying central-government-owned company shares and would keep adding, while China Chengtong Holdings Group bought nearly 10 billion yuan through two units and pledged further purchases of stocks and ETFs tied to state enterprises and tech firms. The intervention followed a brutal downturn in which the tech-heavy STAR Market 50 Index fell more than 20% from a record high into bear-market territory. Beijing is seeking to stabilize its roughly US$15 trillion equity market, which policymakers view as central to funding technological self-sufficiency.</div>
+      </article>
+      <article class="article" data-cat="markets">
+        <div class="art-cat" style="color:#2f5d3a">MARKETS</div>
+        <div class="art-title">Progressive&#x27;s Nice-to-Have Problem: What to Do With Excess Capital</div>
+        <div class="art-sum">Auto insurer Progressive Corp (PGR) has generated so much capital from strong underwriting that it faces the enviable question of how to return it, and it has leaned heavily on dividends rather than buybacks. Its board declared a large annual variable dividend, and in January 2026 the company paid common-share dividends of roughly $8.0 billion (about $13.60 per share) declared in Q4 2025. By favoring a big special dividend over repurchases, management signaled it did not view its own stock as cheap at recent levels near $194, where the payout implied a yield around 7%. Progressive still did modest buybacks, repurchasing about 2.3 million shares for $478 million in Q1 2026, largely tied to equity-compensation tax withholding.</div>
+      </article>
+      <article class="article" data-cat="markets">
+        <div class="art-cat" style="color:#2f5d3a">MARKETS</div>
+        <div class="art-title">Jersey Mike&#x27;s Sets IPO Terms That Could Push Market Cap Toward $8 Billion</div>
+        <div class="art-sum">Blackstone-owned sandwich chain Jersey Mike&#x27;s Subs filed to go public on July 2, 2026, planning to list on the NYSE under the ticker &quot;JMKE,&quot; with an offering expected in late July or early August. Reports indicate the company is seeking a valuation of at least $12 billion and aims to raise more than $1 billion, versus the roughly $8 billion valuation at which Blackstone acquired it in late 2024. The chain reported system-wide sales of $4.3 billion last year (up 13%), cumulative same-store sales growth of about 50% from 2020 through 2025, and net income jumping from $5 million in 2024 to $55 million in 2025. Morgan Stanley, Jefferies, and J.P. Morgan are global coordinators; the per-share price range was still blank in the initial filing, and former Wingstop chief Charlie Morrison was named CEO, succeeding founder Peter Cancro.</div>
+      </article>
+      <article class="article" data-cat="markets">
+        <div class="art-cat" style="color:#2f5d3a">MARKETS</div>
+        <div class="art-title">See How Trump&#x27;s Truth Social Posts Move Stocks</div>
+        <div class="art-sum">President Trump&#x27;s Truth Social posts have repeatedly moved markets, from tariff announcements in spring 2025 that whipsawed equities to posts on Iran and the Strait of Hormuz that jolted oil prices. On July 16, 2026, Trump Media unveiled a paid data product called &quot;Truth API,&quot; slated to launch August 1, that will push posts from the platform&#x27;s top-10 trending accounts to subscribers within milliseconds, effectively selling Wall Street and high-frequency trading firms the fastest access to his market-moving statements. Critics flagged conflict-of-interest concerns because Trump is among Trump Media&#x27;s largest shareholders. A separate analysis found Trump made at least 44 stock purchases across 21 companies within a week before posting favorable Truth Social messages about those firms, their executives, or products.</div>
+      </article>
+      <article class="article" data-cat="markets">
+        <div class="art-cat" style="color:#2f5d3a">MARKETS</div>
+        <div class="art-title">They Call Her &#x27;the Assassin&#x27; on Wall Street—and She Has a New Target</div>
+        <div class="art-sum">Fahmi Quadir, founder and CIO of Safkhet Capital, earned the nickname &quot;the Assassin&quot; for high-profile short bets against Wirecard and Valeant, and is now pivoting from short-selling to long-focused activism in South Korea. She is winding down her short fund and launching a new vehicle to invest in Korean equities, opening a Seoul office and hiring local staff, as first detailed publicly in May 2026. Quadir plans to target smaller companies with limited international exposure and entrenched domestic governance, where she sees room for &quot;long shareholder activism&quot; to unlock value. She framed the shift as an inversion of her career: instead of finding companies that failed from poor governance, finding companies whose governance could be improved.</div>
+      </article>
+      <article class="article" data-cat="markets">
+        <div class="art-cat" style="color:#2f5d3a">MARKETS</div>
+        <div class="art-title">Week Ahead for FX, Bonds: U.S., European PMI Data, ECB Decision in Focus</div>
+        <div class="art-sum">The trading week of July 20-24, 2026, centers on the European Central Bank&#x27;s policy decision on Thursday, July 23 (announcement at 13:45 CET), where markets overwhelmingly expect a hold, leaving the main refinancing rate at 2.40% and the deposit facility rate at 2.25%. Attention will focus on President Christine Lagarde&#x27;s press conference for any hints of a September cut, which could pressure the euro and European bond yields, versus a cautious tone that would push back rate-cut expectations. On Friday, July 24, the U.S., eurozone, U.K., and Japan release flash July manufacturing and services PMIs, the first major read on third-quarter global activity. The UK also reports inflation, unemployment, and retail sales, with the backdrop complicated by renewed Middle East conflict lifting oil prices.</div>
+      </article>
+      <article class="article" data-cat="finance">
+        <div class="art-cat" style="color:#5a4a8a">FINANCE</div>
+        <div class="art-title">The Trigger Clause More Couples Want in Their Prenups</div>
+        <div class="art-sum">Prenups have surged among younger couples, with a 2023 Harris Poll finding roughly 41% of Gen Z and 47% of millennials who were engaged or married had one, versus about 20% of married couples overall, and LegalShield data showing millennials are roughly 10 times likelier than baby boomers to sign one. Within this boom, attorneys report rising demand for &quot;lifestyle&quot; or &quot;trigger&quot; clauses that govern conduct during the marriage rather than just dividing assets afterward, covering things like household duties, social-media behavior, weight, in-law time, and pet custody. The most talked-about variety is the infidelity or &quot;no-cheating&quot; clause, which imposes a financial penalty (for example, a larger settlement or lump-sum payment) if a spouse is unfaithful. Enforceability is uneven: because prenups are governed by contract law, courts can strike clauses deemed unconscionable or against public policy, and no-fault divorce states such as California, Nevada, Iowa, and Hawaii generally refuse to enforce infidelity provisions. Drivers cited include diminished stigma around divorce, greater financial transparency, and student-debt concerns, with surveys showing about 77% of those carrying student debt open to a prenup.</div>
+      </article>
+      <article class="article" data-cat="finance">
+        <div class="art-cat" style="color:#5a4a8a">FINANCE</div>
+        <div class="art-title">Why High Credit Card Delinquencies Aren&#x27;t Showing Up at the Big Banks</div>
+        <div class="art-sum">U.S. credit card debt hit a record $1.25 trillion in Q1 2026 per the New York Fed, and serious delinquencies (90+ days past due) plateaued near a 15-year high, driven mostly by younger, lower-income, and subprime borrowers rather than prime customers. The headline point is a K-shaped split by lender: JPMorgan Chase&#x27;s 30-day-plus card delinquency rate was just 1.68% in Q1 (up from 1.09% a year earlier), while subprime- and retail-card-heavy specialists ran far higher — Capital One&#x27;s domestic card delinquencies were about 3.70% as of March 31, and Synchrony&#x27;s 30-plus rate was 4.52% (actually down from 4.74% a year prior). Post-2008 underwriting tightening pushed the big money-center banks toward prime and super-prime borrowers, so the stress is concentrated at monoline and near-prime lenders rather than the diversified megabanks whose fee income also masks consumer credit pain. Analysts warn a proposed federal cap on credit card interest rates (floated by President Trump in January 2026) could make subprime lending unprofitable and cut off access for those borrowers. In short, the national average understates a genuine subprime problem sitting largely outside the biggest banks&#x27; reported numbers.</div>
+      </article>
+      <article class="article" data-cat="finance">
+        <div class="art-cat" style="color:#5a4a8a">FINANCE</div>
+        <div class="art-title">Gold&#x27;s Faithful Think Twice as Prices Slide From Record Highs</div>
+        <div class="art-sum">Gold set an all-time high of about $5,586 per ounce on January 29, 2026, capping a rally that had blown through the $3,000, $4,000, and $5,000 milestones, before reversing sharply. By July, prices had fallen more than 25% from that peak, hovering around $4,000 an ounce, and the metal posted roughly a 16% drop in the quarter ended June 30 — its worst quarter since Q2 2013. The pullback is largely driven by expectations that the Federal Reserve will hold rates &quot;higher for longer,&quot; which hurts non-yielding gold; the selloff accelerated after President Trump named Kevin Warsh to lead the Fed, a pick markets read as less inclined to cut rates. A firmer dollar and even rising odds of a rate hike added pressure, pushing gold to seven-month lows in June. Longtime gold bulls are now reassessing, though some analysts frame the retreat as a buying opportunity and note continued central-bank demand.</div>
+      </article>
+    </div>
+    <aside class="sidebar"><div class="sidebar-sticky">
+      <div class="side-h">In this issue · 13 stories</div>
+      <div class="toc"><div class="toc-item"><span class="toc-n" style="color:#8a5a2b">1</span><span class="toc-t">Alibaba Says New AI Model Is Just Second to Anthropic&#x27;s Fable 5</span></div><div class="toc-item"><span class="toc-n" style="color:#8a5a2b">2</span><span class="toc-t">The CEO Trying to Fix PayPal Has a New Option: Sell It for Billions</span></div><div class="toc-item"><span class="toc-n" style="color:#8a5a2b">3</span><span class="toc-t">Pastors Using AI to Help Write Sermons Grapple With Where to Draw the Line</span></div><div class="toc-item"><span class="toc-n" style="color:#8a5a2b">4</span><span class="toc-t">IBM&#x27;s Big Blue Blues | Technology for July 19</span></div><div class="toc-item"><span class="toc-n" style="color:#2f5d3a">5</span><span class="toc-t">China State-Owned Funds Buy Nearly $9 Billion in Shares to Support Market</span></div><div class="toc-item"><span class="toc-n" style="color:#2f5d3a">6</span><span class="toc-t">Progressive&#x27;s Nice-to-Have Problem: What to Do With Excess Capital</span></div><div class="toc-item"><span class="toc-n" style="color:#2f5d3a">7</span><span class="toc-t">Jersey Mike&#x27;s Sets IPO Terms That Could Push Market Cap Toward $8 Billion</span></div><div class="toc-item"><span class="toc-n" style="color:#2f5d3a">8</span><span class="toc-t">See How Trump&#x27;s Truth Social Posts Move Stocks</span></div><div class="toc-item"><span class="toc-n" style="color:#2f5d3a">9</span><span class="toc-t">They Call Her &#x27;the Assassin&#x27; on Wall Street—and She Has a New Target</span></div><div class="toc-item"><span class="toc-n" style="color:#2f5d3a">10</span><span class="toc-t">Week Ahead for FX, Bonds: U.S., European PMI Data, ECB Decision in Focus</span></div><div class="toc-item"><span class="toc-n" style="color:#5a4a8a">11</span><span class="toc-t">The Trigger Clause More Couples Want in Their Prenups</span></div><div class="toc-item"><span class="toc-n" style="color:#5a4a8a">12</span><span class="toc-t">Why High Credit Card Delinquencies Aren&#x27;t Showing Up at the Big Banks</span></div><div class="toc-item"><span class="toc-n" style="color:#5a4a8a">13</span><span class="toc-t">Gold&#x27;s Faithful Think Twice as Prices Slide From Record Highs</span></div></div>
+      <div class="side-h side-threads-h">Recurring threads</div>
+<div class="thread-row"><span class="thread-name">AI boom</span><span class="thread-days">13 days</span></div><div class="thread-row"><span class="thread-name">Chips</span><span class="thread-days">13 days</span></div><div class="thread-row"><span class="thread-name">IPOs &amp; listings</span><span class="thread-days">11 days</span></div><div class="thread-row"><span class="thread-name">Iran &amp; oil</span><span class="thread-days">11 days</span></div><div class="thread-row"><span class="thread-name">Crypto</span><span class="thread-days">10 days</span></div><div class="thread-row"><span class="thread-name">Fed &amp; rates</span><span class="thread-days">8 days</span></div><div class="thread-row"><span class="thread-name">Deals &amp; M&amp;A</span><span class="thread-days">5 days</span></div><div class="thread-row"><span class="thread-name">Tariffs &amp; trade</span><span class="thread-days">2 days</span></div>
+    </div></aside>
+  </div>
+  <div class="issue-foot">
+    <span><a class="older" href="digest-2026-07-19.html">← Older · July 19, 2026 · IBM&#x27;s Big Blue Blues</a></span>
+    <a class="home" href="index.html">Back to The Archive</a>
+  </div>
+</div>
+<script>(function(){var tabs=document.querySelectorAll('.tab'),arts=document.querySelectorAll('.article');tabs.forEach(function(t){t.addEventListener('click',function(){var k=t.dataset.key;tabs.forEach(function(x){x.classList.toggle('on',x===t)});arts.forEach(function(a){a.style.display=(k==='all'||a.dataset.cat===k)?'':'none'})})})})();</script>
+
+</body>
+</html>
