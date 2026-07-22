@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 """
-wsj_fetch.py — Stage 1 of the WSJ digest tool.
+wsj_fetch.py — stage 1 of the digest tool.
 
-Pulls the free headline+dek layer for three WSJ sections:
-  - Tech            (WSJ native RSS)
-  - Markets/Finance (WSJ native RSS)
-  - Personal Finance(Google News RSS filtered to site:wsj.com — no public WSJ PF feed)
+Grabs the free headline/dek layer for three WSJ sections (Tech, Markets/Finance,
+Personal Finance). PF doesn't have a public WSJ feed so I go through Google News
+scoped to site:wsj.com.
 
-It does NOT fetch article bodies (those are paywalled). Output is a clean JSON list
-of {section, title, dek, link, published} that Stage 2 (Claude web research) deepens.
+No article bodies here (those are paywalled). Output is just a JSON list of
+{section, title, dek, link, published} that stage 2 fills in.
 
-Usage:
-  python3 wsj_fetch.py                 # Mode A: print a headline digest to stdout
-  python3 wsj_fetch.py --json out.json # Mode A: also write structured JSON
-  python3 wsj_fetch.py --limit 8       # cap items per section (default 12)
-  python3 wsj_fetch.py --research      # Mode B: deepen each headline via Claude
-                                       #   web search, write digest-<date>.md
-                                       #   (needs ANTHROPIC_API_KEY in the env)
+  python3 wsj_fetch.py                 # print headline digest to stdout
+  python3 wsj_fetch.py --json out.json # also dump structured JSON
+  python3 wsj_fetch.py --limit 8       # cap per section (default 12)
+  python3 wsj_fetch.py --research      # mode B: deepen via Claude web search,
+                                       # writes digest-<date>.md (needs ANTHROPIC_API_KEY)
 """
 
 import argparse
@@ -30,12 +27,11 @@ from datetime import datetime, timezone
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
 
-# type "wsj"   -> native WSJ RSS (has <description> deks, but its CDN can serve stale cache)
-# type "gnews" -> Google News RSS search (near-real-time WSJ headlines; recommended default)
-#
-# NOTE: the native WSJ feeds (feeds.a.dj.com) sometimes freeze on a stale cache, so we default
-# to Google News queries scoped to site:wsj.com for reliable freshness. Swap a section back to
-# type "wsj" with a feeds.a.dj.com URL if you want WSJ's own deks and the feed is fresh.
+# Two feed types:
+#   "wsj"   -> native WSJ RSS. has real deks but the CDN loves serving stale cache.
+#   "gnews" -> Google News search. basically real-time, so this is my default.
+# The dj.com feeds kept freezing on me, hence gnews everywhere below. If you want
+# WSJ's own deks back, point a section at a feeds.a.dj.com url with type "wsj".
 def gnews(query: str) -> str:
     import urllib.parse
     return ("https://news.google.com/rss/search?q="
@@ -70,7 +66,7 @@ def clean(text: str) -> str:
     if not text:
         return ""
     text = html.unescape(text)
-    text = TAG.sub("", text)          # strip any embedded HTML
+    text = TAG.sub("", text)          # kill any leftover html tags
     return re.sub(r"\s+", " ", text).strip()
 
 
@@ -84,13 +80,13 @@ def parse_items(xml_bytes: bytes, is_gnews: bool, section: str, limit: int):
         pub = (item.findtext("pubDate") or "").strip()
 
         if is_gnews:
-            # Google News appends " - WSJ"; drop it and skip non-WSJ noise.
+            # gnews tacks " - WSJ" onto every title. strip it, ignore non-WSJ stuff.
             if "wsj.com" not in (item.findtext("{*}source") and item.find("{*}source").get("url", "") or "").lower() \
                and " - WSJ" not in title:
                 # keep only WSJ-sourced results
                 pass
             title = re.sub(r"\s*-\s*WSJ\s*$", "", title)
-            dek = ""  # Google News description is just a link blob; not useful
+            dek = ""  # gnews description is just a link blob, useless
         if not title:
             continue
         out.append({
@@ -127,7 +123,7 @@ def to_markdown(digest):
         if it["section"] != current:
             current = it["section"]
             lines.append(f"\n## {current}\n")
-        # Link the title itself so the rendered page stays clean (no raw URLs).
+        # link the title itself so the page doesn't show raw urls
         if it["link"]:
             lines.append(f"- [{it['title']}]({it['link']})")
         else:
@@ -138,15 +134,15 @@ def to_markdown(digest):
 
 
 # ---------------------------------------------------------------------------
-# Mode B — deepen each headline with Claude's web search.
+# Mode B: deepen each headline with Claude web search.
 #
-# WSJ article bodies are paywalled, so we never read them. Instead we hand Claude
-# just the headline and let its server-side web_search tool find the same story on
-# other outlets (Reuters, AP, Bloomberg, CNBC, ...) and write a short, sourced
-# summary. This keeps us on the free/legal side of the paywall.
+# WSJ bodies are paywalled so I never touch them. I just hand Claude the headline
+# and let its web_search tool find the same story elsewhere (Reuters, AP,
+# Bloomberg, CNBC...) and write a short sourced summary. Keeps everything on the
+# legal side of the paywall.
 # ---------------------------------------------------------------------------
 
-# Opus 4.8 is required for the web_search_20260209 tool (dynamic filtering).
+# needs Opus 4.8 for the web_search_20260209 tool
 RESEARCH_MODEL = "claude-opus-4-8"
 
 RESEARCH_SYSTEM = (
@@ -164,26 +160,26 @@ RESEARCH_SYSTEM = (
 
 
 def split_summary_and_sources(text):
-    """Split the model's answer into (summary, [urls]).
+    """Cut the model's answer into (summary, [urls]).
 
-    The model is told to end with a 'SOURCES: ...' line; we cut the text there and
-    pull the http links out of that line. Anything before it is the summary.
+    It's told to end with a 'SOURCES: ...' line, so I split there and pull the
+    http links out of that line. Everything before it is the summary.
     """
     match = re.search(r"(?im)^\s*sources\s*:\s*(.+)\s*$", text)
     if not match:
         return text.strip(), []
     summary = text[:match.start()].strip()
     urls = re.findall(r"https?://\S+", match.group(1))
-    urls = [u.rstrip(".,)") for u in urls if "wsj.com" not in u]  # defensively drop WSJ
+    urls = [u.rstrip(".,)") for u in urls if "wsj.com" not in u]  # drop wsj just in case
     return summary, urls
 
 
 def research_headline(client, item):
     """Research one headline via Claude + web search.
 
-    Returns the item dict with 'summary' and 'sources' added. On any API/network
-    error it returns the item with an 'error' string instead, so a single bad
-    headline never aborts the whole run.
+    Returns the item with 'summary' and 'sources' filled in. If the API/network
+    blows up it comes back with an 'error' string instead so one bad headline
+    can't kill the whole run.
     """
     try:
         message = client.messages.create(
@@ -196,17 +192,17 @@ def research_headline(client, item):
                 "content": f"Section: {item['section']}\nHeadline: {item['title']}",
             }],
         )
-    except Exception as e:  # noqa — record the failure and keep going
+    except Exception as e:  # noqa — log it and move on
         return {**item, "summary": "", "sources": [], "error": str(e)}
 
-    # The final answer is in the 'text' blocks; web-search blocks are ignored here.
+    # answer lives in the text blocks; ignore the web-search blocks
     text = "".join(b.text for b in message.content if b.type == "text").strip()
     summary, sources = split_summary_and_sources(text)
     return {**item, "summary": summary, "sources": sources, "error": None}
 
 
 def research_to_markdown(researched):
-    """Render researched items as a dated Markdown digest, grouped by section."""
+    """Render the researched items as a dated markdown digest, grouped by section."""
     date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     lines = [f"# WSJ Deep Digest — {date}", "",
              "_Headlines selected by WSJ; summaries researched from non-WSJ sources._", ""]
@@ -226,16 +222,15 @@ def research_to_markdown(researched):
 
 
 def research(digest):
-    """Run Mode B over every fetched headline and return the Markdown report.
+    """Run mode B over every fetched headline, return the markdown.
 
-    Cross-day de-dup: before researching a headline we skip it if a very similar
-    headline was already covered in the last few days (see dedup.py). Headlines
-    that pass the filter are researched and added to the store for next time.
+    Skips a headline if something very similar was already covered in the last few
+    days (see dedup.py). Ones that survive get researched and added to the store.
     """
-    import anthropic  # imported lazily so Mode A works without the SDK installed
+    import anthropic  # lazy import so mode A works without the SDK installed
     import dedup
 
-    client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from the environment
+    client = anthropic.Anthropic()  # picks up ANTHROPIC_API_KEY from the env
     store = dedup.load_store()
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
@@ -249,7 +244,7 @@ def research(digest):
         researched.append(research_headline(client, item))
         store[title] = {"date": today}
 
-    dedup.save_store(dedup.prune_store(store))  # drop entries past the lookback window
+    dedup.save_store(dedup.prune_store(store))  # drop anything past the lookback window
     return research_to_markdown(researched)
 
 

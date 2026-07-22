@@ -1,4 +1,4 @@
-"""Unit tests for wsj_fetch.py — pure functions only, no network calls.
+"""Tests for wsj_fetch.py. Pure functions only, nothing hits the network.
 
 Run with:  python3 -m pytest
 """
@@ -9,7 +9,7 @@ from pathlib import Path
 import dedup
 from wsj_fetch import clean, parse_items, split_summary_and_sources
 
-# A small Google-News-style RSS payload captured as a fixture.
+# saved a small gnews-style RSS payload as a fixture to parse against
 FIXTURE = (Path(__file__).parent / "fixtures" / "sample_feed.xml").read_bytes()
 
 
@@ -18,8 +18,8 @@ FIXTURE = (Path(__file__).parent / "fixtures" / "sample_feed.xml").read_bytes()
 def test_clean_strips_html_and_decodes_entities():
     assert clean("&lt;b&gt;Caf&#233;&lt;/b&gt;  x") == "Café x"
     assert clean("<p>hi</p>\n\n  there") == "hi there"
-    assert clean("") == ""          # empty input
-    assert clean(None) == ""        # None input
+    assert clean("") == ""          # empty
+    assert clean(None) == ""        # None
 
 
 # --- parse_items() -----------------------------------------------------------
@@ -33,11 +33,11 @@ def test_parse_items_strips_the_wsj_suffix():
 
 def test_parse_items_skips_empty_titles_and_decodes_entities():
     titles = [it["title"] for it in parse_items(FIXTURE, is_gnews=True, section="Tech", limit=10)]
-    assert "" not in titles                                  # the empty <item> is dropped
+    assert "" not in titles                                  # empty <item> dropped
     assert titles == [
         "Apple to Spend $30 Billion on U.S.-Made Chips From Broadcom",
         "Microsoft Is Cutting More Than 3,000 Jobs in Xbox Division",
-        "Café Culture Meets AI & Robotics",                  # &#233; and &amp; decoded
+        "Café Culture Meets AI & Robotics",                  # entities decoded (&#233;, &amp;)
     ]
 
 
@@ -54,19 +54,19 @@ def test_split_summary_and_sources_parses_and_drops_wsj():
     )
     summary, sources = split_summary_and_sources(text)
     assert summary == "Apple committed over $30B to Broadcom for U.S. chips."
-    assert sources == ["https://www.cnbc.com/x", "https://reuters.com/z"]  # wsj.com dropped
+    assert sources == ["https://www.cnbc.com/x", "https://reuters.com/z"]  # wsj link filtered out
 
 
 # --- dedup.is_duplicate() ----------------------------------------------------
-# Similarity uses difflib, so these run fully offline and deterministically —
-# no monkeypatching, no API. The store maps headline text -> {date}.
+# difflib-based, so offline + deterministic. no monkeypatching or API needed.
+# store is headline text -> {date}.
 
 def _today():
     return datetime.date.today().isoformat()
 
 
 def test_is_duplicate_true_when_above_threshold():
-    # Same story, trivially reworded ("U.S." -> "US") -> difflib ratio well above 0.85.
+    # same story, tiny reword ("U.S." -> "US"), ratio should be way above 0.85
     store = {"Apple to Spend $30 Billion on U.S.-Made Chips From Broadcom": {"date": _today()}}
     assert dedup.is_duplicate("Apple to Spend $30 Billion on US-Made Chips From Broadcom", store) is True
 

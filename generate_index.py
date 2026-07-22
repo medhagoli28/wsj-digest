@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
-"""Build the GitHub Pages site from the daily digests — "newspaper" design.
+"""Build the GitHub Pages site from the daily digests. Going for a newspaper look.
 
-- index.html          : "The Archive" — masthead, today's lead + also-inside,
-                        a month calendar of past issues, recurring threads.
-- digest-<date>.html  : "The Issue" — dated masthead, category tabs, the day's
-                        stories in an editorial two-column layout with a sidebar
-                        table-of-contents and recurring threads.
+Two kinds of page:
+- index.html          "The Archive": masthead, today's lead + also-inside, a
+                      month calendar of past issues, recurring threads.
+- digest-<date>.html  "The Issue": dated masthead, category tabs, the day's
+                      stories in a two-column layout with a sidebar TOC and threads.
 
-Cream editorial palette, Newsreader serif. Plain Python + inline CSS + a tiny
-category-filter script — no frameworks, no build step beyond this file.
+Cream palette, Newsreader serif. Just Python + inline CSS + one tiny filter
+script. No frameworks, no build step past this file.
 
-Usage:
   python3 generate_index.py            # output into ./public
   python3 generate_index.py --out DIR
 """
@@ -30,7 +29,7 @@ CAT_LABEL = {"tech": "Tech", "markets": "Markets", "finance": "Finance"}
 CAT_COLOR = {"tech": "#8a5a2b", "markets": "#2f5d3a", "finance": "#5a4a8a"}
 WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
-# Recurring "threads" — a digest joins a thread when its text matches any keyword.
+# Recurring "threads": a digest joins a thread if its text hits any of the keywords.
 TOPIC_RULES = [
     ("AI boom", ["artificial intelligence", "hyperscaler", "openai", "anthropic",
                  "nvidia", "claude", "chatgpt", "data center", "capex", "zhipu", "llm"]),
@@ -47,7 +46,7 @@ _TOPIC_RES = [(label, [re.compile(rf"\b{re.escape(k)}\b", re.I) for k in kws])
 
 
 def digest_topics(md_text):
-    """Return the set of thread labels a digest matches, based on its text."""
+    """Which thread labels does this digest match?"""
     return {label for label, pats in _TOPIC_RES if any(p.search(md_text) for p in pats)}
 
 
@@ -186,7 +185,7 @@ CSS = """
 
 
 def find_digests():
-    """Return (date, md_filename) pairs for every digest-<date>.md, newest first."""
+    """(date, md_filename) for every digest-<date>.md, newest first."""
     found = []
     for path in glob.glob("digest-*.md"):
         m = FILENAME_RE.match(os.path.basename(path))
@@ -217,7 +216,7 @@ def _strip_emoji(text):
 
 
 def _inline(text):
-    """Inline Markdown in an already-HTML-escaped string -> HTML."""
+    """Turn inline markdown into HTML (text is already escaped)."""
     text = re.sub(r"\[([^\]]+)\]\((https?://[^)]+)\)", r'<a href="\2">\1</a>', text)
     text = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<em>\1</em>", text)
@@ -225,18 +224,18 @@ def _inline(text):
 
 
 def _parse_articles(md):
-    """Parse a digest's Markdown into article dicts: researched or headline-only."""
+    """Pull a digest's markdown apart into article dicts (researched or headline-only)."""
     articles, section, sec_cls = [], "", ""
     for raw in md.splitlines():
         line = raw.strip()
         if line.startswith("## "):
             section, sec_cls = _strip_emoji(line[3:]), _section_class(line[3:])
             continue
-        m = re.match(r"^\*\*\s*(?:\d+\.\s*)?(.+?)\s*\*\*\s*(.*)$", line)   # researched
+        m = re.match(r"^\*\*\s*(?:\d+\.\s*)?(.+?)\s*\*\*\s*(.*)$", line)   # a researched entry
         if m:
             title, rest = m.group(1), m.group(2)
             kicker = ""
-            t = re.match(r"^\*\(([^)]+)\)\*\s*(.*)$", rest)               # optional *(tag)*
+            t = re.match(r"^\*\(([^)]+)\)\*\s*(.*)$", rest)               # maybe a *(tag)* up front
             if t:
                 kicker, rest = t.group(1), t.group(2)
             rest = re.sub(r"^[—–\-]\s*", "", rest)
@@ -246,11 +245,11 @@ def _parse_articles(md):
                 body = rest[: sm.start()].strip()
             articles.append({"cls": sec_cls, "title": title, "url": None, "kicker": kicker, "body": body})
             continue
-        hm = re.match(r"^- \[([^\]]+)\]\((https?://[^)]+)\)", line)        # headline w/ link
+        hm = re.match(r"^- \[([^\]]+)\]\((https?://[^)]+)\)", line)        # bare headline, has a link
         if hm:
             articles.append({"cls": sec_cls, "title": hm.group(1), "url": hm.group(2), "kicker": "", "body": ""})
             continue
-        hm = re.match(r"^- \*\*(.+?)\*\*", line)                           # headline, no link
+        hm = re.match(r"^- \*\*(.+?)\*\*", line)                           # bare headline, no link
         if hm:
             articles.append({"cls": sec_cls, "title": hm.group(1), "url": None, "kicker": "", "body": ""})
     return articles
@@ -292,10 +291,10 @@ def _page(title, body):
     )
 
 
-# --- landing ("The Archive") ------------------------------------------------
+# --- landing page ("The Archive") -------------------------------------------
 
 def _month_archive(year, month, ctx):
-    cal = calendar.Calendar(firstweekday=6)  # Sunday-first
+    cal = calendar.Calendar(firstweekday=6)  # weeks start on Sunday
     weeks = cal.monthdayscalendar(year, month)
     n_issues = sum(1 for d, _ in ctx["digests"] if d.year == year and d.month == month)
     head = "".join(f"<span>{d}</span>" for d in WEEKDAYS)
@@ -382,7 +381,7 @@ def render_index(ctx):
     return _page("The Deep Digest", body)
 
 
-# --- issue page ("The Issue") -----------------------------------------------
+# --- the per-day issue page ("The Issue") -----------------------------------
 
 def render_issue(date, ctx):
     iso = date.isoformat()
@@ -491,7 +490,7 @@ def main():
         print("[no digests]")
         return
 
-    # Build a shared context once (read each file a single time).
+    # read each file once and stash everything the renderers need in one ctx
     arts, topics = {}, {}
     for d, name in digests:
         md = open(name, encoding="utf-8").read()
@@ -503,11 +502,11 @@ def main():
         for t in tset:
             topic_days[t] = topic_days.get(t, 0) + 1
 
-    ordered = sorted(d for d, _ in digests)         # oldest -> newest
+    ordered = sorted(d for d, _ in digests)         # oldest first, for issue numbers
     issue_no = {d.isoformat(): i + 1 for i, d in enumerate(ordered)}
     previews = {d.isoformat(): (arts[d.isoformat()][0]["title"] if arts[d.isoformat()] else "")
                 for d, _ in digests}
-    # newer = more recent neighbour, older = previous
+    # older = previous day, newer = next day (for the prev/next nav)
     older, newer = {}, {}
     for i, (d, _) in enumerate(digests):
         if i < len(digests) - 1:

@@ -1,6 +1,6 @@
-"""Unit tests for search.py — indexing, TF-IDF ranking, filters, snippets.
+"""Tests for search.py: indexing, TF-IDF ranking, filters, snippets.
 
-Pure functions and an in-memory corpus, so these run offline and deterministically.
+Pure functions + an in-memory corpus, so no network and fully deterministic.
 Run with:  python3 -m pytest
 """
 
@@ -11,8 +11,8 @@ import pytest
 import search
 
 
-# A tiny, controlled corpus. Note the term-heavy digest is the OLDEST, so a
-# correct ranker must place it first for "apple chips" (relevance, not recency).
+# tiny fixed corpus. the term-heavy doc is deliberately the OLDEST so that a
+# working ranker still has to put it first for "apple chips" (relevance > recency).
 DOCS = [
     {"date": "2026-07-10", "text": "Apple to spend billions on chips from Broadcom", "topics": ["Chips"]},
     {"date": "2026-07-09", "text": "Bitcoin falls as Strategy sells crypto holdings", "topics": ["Crypto"]},
@@ -29,13 +29,13 @@ def index():
 
 def test_tokenize_lowercases_splits_and_drops_single_chars():
     assert search.tokenize("Apple's $30B chip!") == ["apple", "30b", "chip"]
-    assert search.tokenize("a I x9 to") == ["x9", "to"]   # 'a' and 'i' dropped, 'x9'/'to' kept
+    assert search.tokenize("a I x9 to") == ["x9", "to"]   # single chars gone, x9/to stay
     assert search.tokenize("") == []
 
 
 def test_idf_is_smoothed_and_positive_even_for_ubiquitous_terms():
     assert search.idf(3, 1) == pytest.approx(math.log(4 / 2) + 1)
-    # a term in every doc still gets a positive weight (no divide-by-zero / zero collapse)
+    # even a term in every doc should stay positive (no div-by-zero, no collapse to 0)
     assert search.idf(1, 1) > 0
 
 
@@ -55,7 +55,7 @@ def test_build_index_counts_df_and_postings(index):
 
 def test_search_ranks_by_relevance_not_recency(index):
     results = search.search(index, "apple chips")
-    assert [r["date"] for r in results] == ["2026-07-08", "2026-07-10"]  # heavier (older) first
+    assert [r["date"] for r in results] == ["2026-07-08", "2026-07-10"]  # older doc wins on tf
     assert results[0]["score"] > results[1]["score"]
 
 
@@ -85,7 +85,7 @@ def test_topic_filter_is_union(index):
 
 
 def test_keyword_and_filter_combine(index):
-    # "apple" matches docs 0 & 2, but the date filter drops the 2026-07-08 one
+    # apple hits docs 0 and 2, date filter should knock out the 07-08 one
     dates = [r["date"] for r in search.search(index, "apple", date_from="2026-07-09")]
     assert dates == ["2026-07-10"]
 
@@ -115,8 +115,8 @@ def test_snippet_highlights_terms():
 
 def test_snippet_is_html_safe():
     out = search.make_snippet("a < b & chips", {"chips"})
-    assert "&lt;" in out and "&amp;" in out          # literal HTML escaped
-    assert "<mark>chips</mark>" in out               # only the mark tag is raw
+    assert "&lt;" in out and "&amp;" in out          # real html got escaped
+    assert "<mark>chips</mark>" in out               # ...but the mark tag stays raw
 
 
 def test_snippet_browse_mode_returns_head_without_marks():
@@ -139,11 +139,11 @@ def test_load_digests_reads_dates_and_reuses_topic_tags(tmp_path):
         "# WSJ Deep Digest\nBitcoin surged while Nvidia AI data-center demand grew.",
         encoding="utf-8",
     )
-    (tmp_path / "notes.md").write_text("ignore me", encoding="utf-8")  # non-digest file ignored
+    (tmp_path / "notes.md").write_text("ignore me", encoding="utf-8")  # should be skipped
     docs = search.load_digests(str(tmp_path))
     assert len(docs) == 1
     assert docs[0]["date"] == "2026-01-01"
     assert "Crypto" in docs[0]["topics"] and "AI boom" in docs[0]["topics"]
-    # and the index/search round-trips over it
+    # sanity check that it round-trips through index + search
     results = search.search(search.build_index(docs), "nvidia")
     assert results and results[0]["date"] == "2026-01-01"
