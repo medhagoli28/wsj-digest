@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Deep Digest — July 22, 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500&display=swap" rel="stylesheet">
+  <style>
+  :root { --paper:#f6f1e6; --outer:#e5e1d6; --panel:#efe8d8; --ink:#1c1a15;
+          --body:#413d33; --mut:#5a554a; --mut2:#7c7568; --faint:#a49b86;
+          --rule:#d8cfbd; --rule2:#d3c9b4; --brown:#8a5a2b; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--outer); color:var(--ink);
+         font-family:'Newsreader',Georgia,'Times New Roman',serif; -webkit-font-smoothing:antialiased; }
+  a { color:inherit; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  ::selection { background:#e9d9bf; }
+  .sans { font-family:system-ui,-apple-system,'Segoe UI',sans-serif; }
+  .paper { max-width:1000px; margin:0 auto; background:var(--paper); min-height:100vh;
+           box-shadow:0 0 40px rgba(0,0,0,.12); }
+
+  /* masthead */
+  .mast { padding:26px 44px 20px; text-align:center; border-bottom:2px solid var(--ink); }
+  .mast-top { display:flex; justify-content:space-between; align-items:center;
+              font:500 10.5px/1 system-ui,sans-serif; letter-spacing:.16em; text-transform:uppercase; color:var(--brown); }
+  .mast-title { font-weight:600; font-size:56px; letter-spacing:-.01em; margin:14px 0 9px; }
+  .mast-sub { font:400 12px/1.5 system-ui,sans-serif; letter-spacing:.24em; text-transform:uppercase; color:var(--mut); }
+
+  /* nav / search bar */
+  .navbar { display:flex; align-items:center; justify-content:space-between; padding:11px 44px;
+            border-bottom:1px solid var(--rule); background:var(--panel); gap:12px; flex-wrap:wrap; }
+  .navtabs { display:flex; gap:22px; font:500 12px/1 system-ui,sans-serif; }
+  .navtabs span { color:var(--mut2); }
+  .navtabs .on { color:var(--ink); border-bottom:2px solid var(--ink); padding-bottom:3px; }
+  .searchbox { display:flex; align-items:center; gap:8px; border:1px solid #c9bfa8; border-radius:2px;
+               padding:6px 11px; background:var(--paper); font:400 12px system-ui,sans-serif; color:#8a8375;
+               min-width:210px; }
+  .searchbox input { border:0; background:transparent; font:inherit; color:var(--ink); width:100%; outline:none; }
+
+  /* lead + also-inside */
+  .lead-grid { display:grid; grid-template-columns:1.55fr 1fr; }
+  .lead { padding:30px 38px 32px; border-right:1px solid var(--rule); }
+  .kicker { font:600 10.5px/1 system-ui,sans-serif; letter-spacing:.16em; text-transform:uppercase;
+            color:var(--brown); margin-bottom:12px; }
+  .lead-title { font-weight:700; font-size:40px; line-height:1.04; letter-spacing:-.015em; margin-bottom:14px; }
+  .lead-sum { font-size:17px; line-height:1.5; color:var(--body); }
+  .lead-btn { display:inline-flex; gap:8px; margin-top:18px; font:600 10px/1 system-ui,sans-serif;
+              letter-spacing:.1em; text-transform:uppercase; padding:9px 13px; background:var(--ink); color:var(--paper); }
+  .lead-btn:hover { text-decoration:none; opacity:.92; }
+  .also { padding:28px 32px; }
+  .also-h { font:600 10.5px/1 system-ui,sans-serif; letter-spacing:.16em; text-transform:uppercase;
+            color:var(--mut); margin-bottom:14px; }
+  .also-item { border-top:1px solid var(--rule); padding-top:11px; margin-bottom:13px; display:block; }
+  .also-cat { font:600 9px/1 system-ui,sans-serif; letter-spacing:.08em; text-transform:uppercase; }
+  .also-title { font-size:17px; line-height:1.2; font-weight:600; margin-top:3px; }
+
+  /* archive calendar */
+  .archive { padding:24px 44px 18px; border-top:2px solid var(--ink); background:var(--panel); }
+  .archive + .archive { border-top:1px solid var(--rule); }
+  .archive-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; }
+  .archive-title { font-weight:600; font-size:23px; }
+  .archive-meta { font:400 11px system-ui,sans-serif; color:var(--mut2); letter-spacing:.04em; }
+  .weekhead { display:grid; grid-template-columns:repeat(7,1fr); gap:2px 8px; text-align:center;
+              font:600 10px/1 system-ui,sans-serif; letter-spacing:.1em; text-transform:uppercase;
+              color:var(--faint); margin-bottom:7px; }
+  .caldays { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+  .cell { min-height:60px; padding-top:5px; }
+  .cell .cnum { font-size:14px; }
+  .cell .chead { font:500 10.5px/1.2 system-ui,sans-serif; color:#4a4638; margin-top:3px; }
+  .cell.blank { border-top:1px solid var(--rule2); color:#c3b9a3; }
+  .cell.has { border-top:1.5px solid var(--ink); }
+  .cell.has .cnum { font-weight:600; }
+  .cell.lead { border-top:2.5px solid var(--brown); background:var(--paper); }
+  .cell.lead .cnum { font-weight:700; color:var(--brown); }
+  .cell.lead .chead { color:var(--ink); font-weight:600; }
+  .cell a { display:block; }
+  .cell a:hover { text-decoration:none; }
+  .cell a:hover .chead { text-decoration:underline; }
+
+  /* recurring threads (landing) */
+  .threads { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:16px 0 6px;
+             border-top:1px solid var(--rule); margin-top:12px; }
+  .threads-label { font:600 10px/1 system-ui,sans-serif; letter-spacing:.12em; text-transform:uppercase;
+                   color:var(--mut2); margin-right:4px; }
+  .thread { font-style:italic; font-size:15px; border-bottom:1px solid var(--brown); }
+
+  /* issue page */
+  .crumb { display:flex; align-items:center; justify-content:space-between; padding:12px 44px;
+           border-bottom:1px solid var(--rule); font:500 11px/1 system-ui,sans-serif;
+           letter-spacing:.04em; color:var(--mut2); gap:10px; }
+  .crumb a { color:var(--brown); }
+  .crumb .mid { letter-spacing:.16em; text-transform:uppercase; }
+  .issue-mast { padding:34px 44px 22px; text-align:center; border-bottom:2px solid var(--ink); }
+  .issue-kicker { font:500 11px/1 system-ui,sans-serif; letter-spacing:.22em; text-transform:uppercase;
+                  color:var(--brown); margin-bottom:14px; }
+  .issue-date { font-weight:700; font-size:60px; line-height:.98; letter-spacing:-.02em; }
+  .issue-sub { font-style:italic; font-size:18px; color:var(--mut); margin-top:12px; }
+  .tabbar { display:flex; align-items:center; justify-content:space-between; padding:12px 44px;
+            border-bottom:1px solid var(--rule); background:var(--panel); position:sticky; top:0; z-index:5;
+            gap:12px; flex-wrap:wrap; }
+  .tabs { display:flex; gap:8px; font:500 12px/1 system-ui,sans-serif; }
+  .tab { cursor:pointer; padding:6px 12px; border-radius:2px; border:1px solid #c9bfa8; background:transparent; color:var(--ink); }
+  .tab.on { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .issue-grid { display:grid; grid-template-columns:1.7fr 1fr; }
+  .articles { padding:30px 38px 34px; border-right:1px solid var(--rule); }
+  .article { padding:0 0 22px; margin-bottom:22px; border-bottom:1px solid var(--rule); }
+  .article:last-child { border-bottom:0; margin-bottom:0; }
+  .art-cat { font:600 10px/1 system-ui,sans-serif; letter-spacing:.14em; text-transform:uppercase; margin-bottom:8px; }
+  .art-title { font-weight:700; font-size:25px; line-height:1.1; margin-bottom:9px; }
+  .art-title a:hover { text-decoration:underline; }
+  .art-sum { font-size:15.5px; line-height:1.56; color:var(--body); }
+  .art-kicker { font-style:italic; color:var(--mut); }
+  .sidebar { padding:30px; background:var(--panel); }
+  .sidebar-sticky { position:sticky; top:72px; }
+  .side-h { font:600 10px/1 system-ui,sans-serif; letter-spacing:.14em; text-transform:uppercase;
+            color:var(--mut2); margin-bottom:14px; }
+  .toc { display:flex; flex-direction:column; gap:9px; margin-bottom:26px; }
+  .toc-item { display:flex; gap:9px; align-items:baseline; border-bottom:1px solid var(--rule2); padding-bottom:8px; }
+  .toc-n { font:600 10px system-ui,sans-serif; width:14px; flex:none; }
+  .toc-t { font-size:14px; line-height:1.25; color:var(--body); flex:1; }
+  .side-threads-h { padding-top:20px; border-top:2px solid var(--ink); }
+  .thread-row { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:11px; }
+  .thread-name { font-style:italic; font-size:16px; border-bottom:1px solid var(--brown); }
+  .thread-days { font:400 11px system-ui,sans-serif; color:var(--faint); }
+  .issue-foot { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:20px 44px;
+                border-top:2px solid var(--ink); background:var(--panel); font:500 12px/1.4 system-ui,sans-serif; }
+  .issue-foot .older { color:var(--brown); }
+  .issue-foot .home { color:var(--faint); }
+
+  @media (max-width:760px) {
+    .mast, .archive { padding-left:20px; padding-right:20px; }
+    .navbar, .crumb, .tabbar, .issue-mast, .issue-foot { padding-left:20px; padding-right:20px; }
+    .mast-title { font-size:38px; } .issue-date { font-size:40px; }
+    .lead-grid, .issue-grid { grid-template-columns:1fr; }
+    .lead, .articles { border-right:0; border-bottom:1px solid var(--rule); }
+    .cell .chead { display:none; } .cell { min-height:44px; }
+    .searchbox { min-width:0; width:100%; }
+  }
+</style>
+</head>
+<body>
+<div class="paper">
+  <div class="crumb">
+    <a href="index.html">← The Archive</a>
+    <span class="mid">The Deep Digest</span>
+    <span><a href="digest-2026-07-21.html">‹ Jul 21</a></span>
+  </div>
+  <header class="issue-mast">
+    <div class="issue-kicker">Wednesday Issue · No. 15</div>
+    <div class="issue-date">July 22, 2026</div>
+    <div class="issue-sub">12 stories across tech, markets &amp; finance — a 8-minute read.</div>
+  </header>
+  <div class="tabbar"><div class="tabs"><span class="tab on" data-key="all">All · 12</span><span class="tab" data-key="tech">Tech · 4</span><span class="tab" data-key="markets">Markets · 5</span><span class="tab" data-key="finance">Finance · 3</span></div><form class="searchbox" action="search.html" method="get" role="search"><span>⌕</span><input name="q" placeholder="Search the archive…" aria-label="Search the archive"></form></div>
+  <div class="issue-grid">
+    <div class="articles">
+      <article class="article" data-cat="tech">
+        <div class="art-cat" style="color:#8a5a2b">TECH</div>
+        <div class="art-title">Exclusive | AMD and Anthropic Sign Major Chips-and-Investment Deal</div>
+        <div class="art-sum">AMD and Anthropic announced a strategic partnership on July 22, 2026 under which Anthropic will deploy up to 2 gigawatts of AMD&#x27;s next-generation MI450 AI accelerators, with rollout beginning in the first half of 2027. As part of the arrangement, AMD is committing to invest up to $5 billion in Anthropic, deepening the chipmaker&#x27;s push to challenge Nvidia&#x27;s dominance in AI training silicon. The deal was timed ahead of AMD&#x27;s &quot;Advancing AI 2026&quot; event, and analysts at Jefferies had flagged it as a potential catalyst for the stock. Despite the scale of the commitment, AMD shares slipped about 2.5% in premarket trading on the news. The agreement mirrors similar mega-deals AI labs have struck to lock in scarce compute capacity through the end of the decade.</div>
+      </article>
+      <article class="article" data-cat="tech">
+        <div class="art-cat" style="color:#8a5a2b">TECH</div>
+        <div class="art-title">Nvidia Supplier Wistron Opens $700 Million Texas Site Producing AI &#x27;Superchips&#x27;</div>
+        <div class="art-sum">Taiwan-based Nvidia supplier Wistron opened a $700 million manufacturing facility in Fort Worth, Texas on July 22, 2026, marking its first U.S. plant and the first American site to mass-produce Nvidia&#x27;s GB300 Grace Blackwell Ultra superchip. The 324,000-square-foot factory was inaugurated by Wistron Chairman Simon Lin and Nvidia CEO Jensen Huang, and will also build the upcoming Vera Rubin superchips. The site has already created more than 500 jobs, with plans to reach 1,000 by year-end, and is expected to scale to tens of thousands of computing boards per month. According to TrendForce, the D1 factory represents roughly 5% of Nvidia&#x27;s total output. Wistron shares surged in Taiwan trading following the opening.</div>
+      </article>
+      <article class="article" data-cat="tech">
+        <div class="art-cat" style="color:#8a5a2b">TECH</div>
+        <div class="art-title">The AI Backlash Is Starting to Sting</div>
+        <div class="art-sum">Public and local resistance to AI is hardening into a genuine business risk in 2026, driven by anxieties over jobs, energy, and trust. Gallup polling cited by Axios found only 18% of people ages 14 to 29 feel hopeful about AI, while over 70% of Americans (68% of Republicans and 77% of Democrats) say the technology is advancing too quickly. Data-center opposition has been especially acute: local pushback blocked or delayed 75 projects worth roughly $130 billion in the first quarter of 2026 alone—matching all of 2025—as the number of organized opposition groups doubled to 833 across 49 states, per Platformer. On jobs, 71% of professionals surveyed expect AI to eliminate more roles than it creates over the next three years, and AI is now the leading cited reason for tech-sector layoffs. Morgan Stanley analysts warn the backlash is becoming &quot;a binding constraint&quot; on AI buildout that PR campaigns alone cannot resolve.</div>
+      </article>
+      <article class="article" data-cat="tech">
+        <div class="art-cat" style="color:#8a5a2b">TECH</div>
+        <div class="art-title">Top American AI Execs Sound Alarm on Chinese Models</div>
+        <div class="art-sum">Senior executives at OpenAI and Anthropic are publicly warning that a wave of powerful, cheap, open-weight Chinese AI models poses serious security and competitive risks to the U.S. The concern intensified after the recent release of highly capable open systems such as Moonshot AI&#x27;s Kimi model and Alibaba&#x27;s Qwen, following DeepSeek&#x27;s V3 model, which rattled markets in early 2025 by matching rivals at a fraction of the compute cost. Anthropic CEO Dario Amodei has cautioned that freely downloadable models with advanced cybersecurity capabilities could be dangerous, while U.S. officials have accused Chinese firms of &quot;distillation&quot;—allegedly copying proprietary technology—with Treasury Secretary Scott Bessent floating potential sanctions. Congress moved on July 8, 2026 to probe growing use of Chinese models in U.S. companies and has restricted DeepSeek on federal and defense networks. Skeptics note both U.S. firms are preparing for public listings and may partly be seeking to sideline cheaper competition.</div>
+      </article>
+      <article class="article" data-cat="markets">
+        <div class="art-cat" style="color:#2f5d3a">MARKETS</div>
+        <div class="art-title">Tech Stocks Return to Rally Mode Ahead of Earnings</div>
+        <div class="art-sum">U.S. equities swung back into rally mode to open the week of July 20, 2026, with technology shares leading as investors positioned ahead of a heavy slate of Big Tech results. Shortly after Monday&#x27;s open the Nasdaq Composite was up about 282 points, or 1.1%, near 25,802, while the S&amp;P 500 gained roughly 0.7% to about 7,511 and the Dow Jones Industrial Average added around 154 points to near 52,300. The move set up an earnings-driven stretch featuring Alphabet and Tesla reporting after the bell on Wednesday, with Intel and IBM among names later in the week. Analysts framed the coming fortnight as a tug-of-war between geopolitical headlines and marquee earnings that was likely to keep volatility elevated.</div>
+      </article>
+      <article class="article" data-cat="markets">
+        <div class="art-cat" style="color:#2f5d3a">MARKETS</div>
+        <div class="art-title">Chip Stocks Shrug Off Chinese AI Worries</div>
+        <div class="art-sum">Semiconductor names pushed higher in the July 20-21 window even as investors fretted over rapidly improving Chinese AI models and stretched AI valuations. Nvidia, which commands an estimated 70-80% share of the AI GPU market, was trying to stabilize above the psychologically important $200 level after a bruising stretch in which the Philadelphia Semiconductor Index (SOX) had fallen roughly 10% on the week and slid more than 20% from its June peak into a technical bear market. Bulls argued the AI capex cycle remained intact — chip stocks had added a combined roughly $2 trillion in market value and the SOX was still up around 47% year-to-date at points in July 2026 — helping the sector look past Chinese competition fears. The rebound reflected renewed conviction that hyperscaler spending would keep underwriting demand despite the DeepSeek-style anxiety about cheaper Chinese models.</div>
+      </article>
+      <article class="article" data-cat="markets">
+        <div class="art-cat" style="color:#2f5d3a">MARKETS</div>
+        <div class="art-title">South Korea Is Trying to Tame Market Swings. Analysts Aren&#x27;t Sure It Will Work.</div>
+        <div class="art-sum">South Korea&#x27;s exchange operator triggered a record 29,357 Volatility Interruptions (VIs) on the KOSPI in the first half of 2026, eclipsing the prior record of 24,401 set during the COVID-19 crash of early 2020, while sidecar circuit-breaker activations reached 37 for the year. The benchmark had surged to an all-time high in June before plunging, falling about 25% from that peak by mid-July, and its annualized volatility spiked to roughly 57%, exceeding even bitcoin&#x27;s. In response, regulators moved to ban new single-stock leveraged ETFs tied to Samsung Electronics and SK hynix and to raise minimum deposits to about 30 million won. Analysts remain skeptical the curbs will calm the market, pointing to South Korea&#x27;s outsized retail-investor base and heavy leveraged-derivatives trading as the real amplifiers of the swings.</div>
+      </article>
+      <article class="article" data-cat="markets">
+        <div class="art-cat" style="color:#2f5d3a">MARKETS</div>
+        <div class="art-title">Everyday Investors Are Over the Mag Seven and Into New AI Darlings</div>
+        <div class="art-sum">A pronounced style rotation gripped U.S. equities in 2026, unwinding the multi-year dominance of the Magnificent Seven, with the Roundhill Magnificent Seven ETF (MAGS) roughly flat to down about 0.5% year-to-date. Rather than blanket-buying the megacaps, retail investors churned through themes — energy stocks early in the year, silver ETFs and non-U.S. markets in February, semiconductors in April, and crypto ETFs by June — behaving more like active stock-pickers. Performance dispersion within the group widened sharply: Alphabet climbed about 101% over the trailing year and Apple gained roughly 48%, while Meta Platforms fell about 15.9% and Microsoft dropped around 23.3% on worries over AI capex payback timelines. Small-cap growth names drew fresh interest thanks to cheaper valuations, domestic insulation from currency and geopolitical risk, and mean-reversion potential.</div>
+      </article>
+      <article class="article" data-cat="markets">
+        <div class="art-cat" style="color:#2f5d3a">MARKETS</div>
+        <div class="art-title">U.S. Chip Stocks Rebound, Lifting Indexes Ahead of Tech Earnings</div>
+        <div class="art-sum">A powerful semiconductor bounce on Tuesday, July 21, 2026, dragged the major indexes higher and snapped a three-day losing streak just as Big Tech earnings began. The Philadelphia Semiconductor Index jumped more than 5% on the session, helping the Nasdaq Composite climb 1.29% to close at 25,837.21 and the S&amp;P 500 rise 0.89% to 7,509.20, while the Dow lagged with a slimmer gain. The rebound came as investors braced for Alphabet and Tesla to report after Wednesday&#x27;s close and Intel on Thursday, with chipmakers seen as the key tell for AI-spending momentum. The recovery reversed part of a sharp semiconductor drawdown earlier in the month that had rattled sentiment around AI valuations.</div>
+      </article>
+      <article class="article" data-cat="finance">
+        <div class="art-cat" style="color:#5a4a8a">FINANCE</div>
+        <div class="art-title">Inside America&#x27;s Most Generous 401(k) Plans</div>
+        <div class="art-sum">A &quot;generous&quot; 401(k) is defined by how much the employer adds on top of your own savings, whether through a dollar-for-dollar match, a richer 2-for-1 match, or automatic non-elective contributions that land even if you contribute nothing; the national average employer match is only about 4.7% of pay, so top-tier plans stand out sharply. Standouts include Visa (2% for every 1% you put in, up to a 10% company contribution for a combined 15%), Boeing and Uber (dollar-for-dollar up to 10% of pay), Southwest Airlines (up to 9.3% with immediate vesting), Amgen (5% automatic plus a full match up to 5%, for 10% total), and General Motors (4% match plus a 6% automatic contribution). For 2026 the IRS raised the employee deferral limit to $24,500, with an $8,000 catch-up at 50+ (and a higher $11,250 catch-up for ages 60-63 under SECURE 2.0), while combined employee-plus-employer contributions can reach $72,000 under IRC Section 415(c). Only the first $360,000 of compensation counts when calculating these contributions. Immediate vesting and eligibility, as offered by firms like Boeing and Southwest, further separate the most generous plans from those that stretch vesting over several years.</div>
+      </article>
+      <article class="article" data-cat="finance">
+        <div class="art-cat" style="color:#5a4a8a">FINANCE</div>
+        <div class="art-title">The Startup Insiders Who Stash Huge Sums in Tax-Subsidized Retirement Accounts</div>
+        <div class="art-sum">Founders and early employees can shelter enormous gains by buying founder shares while they are worth fractions of a penny inside a self-directed Roth IRA, where all future appreciation grows and can be withdrawn tax-free after age 59½; the archetype is PayPal co-founder Peter Thiel, who in 1999 bought roughly 1.7 million shares for about $1,700 in his Roth and, per ProPublica, grew it into a reported $5 billion tax-free by 2019. Higher earners also use the &quot;mega-backdoor Roth,&quot; funneling after-tax 401(k) dollars up to the 2026 Section 415(c) ceiling of $72,000 (about $47,500 of after-tax room beyond the $24,500 deferral) and converting them to Roth. Section 1202 QSBS is another shelter: under the One Big Beautiful Bill Act, stock issued after July 4, 2025 in a C-corp with up to $75 million in gross assets can exclude the greater of $15 million or 10x basis in gains per issuer (up from $10 million). OBBBA also replaced the all-or-nothing five-year rule with a tiered schedule (50% exclusion at 3 years, 75% at 4 years, 100% at 5 years), though non-excluded gains are taxed at 28%. Solo 401(k)s and self-directed accounts let the self-employed stack these strategies, avoiding nondiscrimination testing but requiring plan documents that explicitly permit after-tax contributions and in-plan Roth conversions.</div>
+      </article>
+      <article class="article" data-cat="finance">
+        <div class="art-cat" style="color:#5a4a8a">FINANCE</div>
+        <div class="art-title">Nasdaq Loses Early Gains as Fears Persist Over Oil Prices, AI</div>
+        <div class="art-sum">On Monday, July 20, 2026, the tech-heavy Nasdaq Composite surrendered early gains to finish essentially flat as semiconductor stocks weakened again, while the Dow Jones Industrial Average fell about 0.6% and the S&amp;P 500 slipped roughly 0.2%. The pullback was driven by rising oil, which touched around $90 a barrel amid tit-for-tat military exchanges between the U.S. and Iran over the weekend. Adding pressure, investors grew wary of the AI trade, shifting their focus from AI spending to AI profits and demanding evidence that months of massive infrastructure investment are translating into stronger earnings and cash flow. Wall Street looked ahead to quarterly results due later that week from Alphabet, Intel, IBM, and Tesla for signs of AI monetization. The session capped a volatile stretch of sector rotations as markets hunted for the next catalyst to sustain the AI rally.</div>
+      </article>
+    </div>
+    <aside class="sidebar"><div class="sidebar-sticky">
+      <div class="side-h">In this issue · 12 stories</div>
+      <div class="toc"><div class="toc-item"><span class="toc-n" style="color:#8a5a2b">1</span><span class="toc-t">Exclusive | AMD and Anthropic Sign Major Chips-and-Investment Deal</span></div><div class="toc-item"><span class="toc-n" style="color:#8a5a2b">2</span><span class="toc-t">Nvidia Supplier Wistron Opens $700 Million Texas Site Producing AI &#x27;Superchips&#x27;</span></div><div class="toc-item"><span class="toc-n" style="color:#8a5a2b">3</span><span class="toc-t">The AI Backlash Is Starting to Sting</span></div><div class="toc-item"><span class="toc-n" style="color:#8a5a2b">4</span><span class="toc-t">Top American AI Execs Sound Alarm on Chinese Models</span></div><div class="toc-item"><span class="toc-n" style="color:#2f5d3a">5</span><span class="toc-t">Tech Stocks Return to Rally Mode Ahead of Earnings</span></div><div class="toc-item"><span class="toc-n" style="color:#2f5d3a">6</span><span class="toc-t">Chip Stocks Shrug Off Chinese AI Worries</span></div><div class="toc-item"><span class="toc-n" style="color:#2f5d3a">7</span><span class="toc-t">South Korea Is Trying to Tame Market Swings. Analysts Aren&#x27;t Sure It Will Work.</span></div><div class="toc-item"><span class="toc-n" style="color:#2f5d3a">8</span><span class="toc-t">Everyday Investors Are Over the Mag Seven and Into New AI Darlings</span></div><div class="toc-item"><span class="toc-n" style="color:#2f5d3a">9</span><span class="toc-t">U.S. Chip Stocks Rebound, Lifting Indexes Ahead of Tech Earnings</span></div><div class="toc-item"><span class="toc-n" style="color:#5a4a8a">10</span><span class="toc-t">Inside America&#x27;s Most Generous 401(k) Plans</span></div><div class="toc-item"><span class="toc-n" style="color:#5a4a8a">11</span><span class="toc-t">The Startup Insiders Who Stash Huge Sums in Tax-Subsidized Retirement Accounts</span></div><div class="toc-item"><span class="toc-n" style="color:#5a4a8a">12</span><span class="toc-t">Nasdaq Loses Early Gains as Fears Persist Over Oil Prices, AI</span></div></div>
+      <div class="side-h side-threads-h">Recurring threads</div>
+<div class="thread-row"><span class="thread-name">Chips</span><span class="thread-days">15 days</span></div><div class="thread-row"><span class="thread-name">AI boom</span><span class="thread-days">15 days</span></div><div class="thread-row"><span class="thread-name">Iran &amp; oil</span><span class="thread-days">13 days</span></div><div class="thread-row"><span class="thread-name">Crypto</span><span class="thread-days">11 days</span></div>
+    </div></aside>
+  </div>
+  <div class="issue-foot">
+    <span><a class="older" href="digest-2026-07-21.html">← Older · July 21, 2026 · U.S.-Iran Tensions Jostle Markets</a></span>
+    <a class="home" href="index.html">Back to The Archive</a>
+  </div>
+</div>
+<script>(function(){var tabs=document.querySelectorAll('.tab'),arts=document.querySelectorAll('.article');tabs.forEach(function(t){t.addEventListener('click',function(){var k=t.dataset.key;tabs.forEach(function(x){x.classList.toggle('on',x===t)});arts.forEach(function(a){a.style.display=(k==='all'||a.dataset.cat===k)?'':'none'})})})})();</script>
+
+</body>
+</html>
