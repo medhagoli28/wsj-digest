@@ -50,7 +50,7 @@
   <footer>Ranked by relevance (TF-IDF) across all daily digests. Index rebuilt automatically on each new summary.</footer>
 
   <script>
-  // ---- scorer: mirrors search.py (keep in sync) ----
+  // scorer below is a port of search.py -- if you change one, change the other
   const TOKEN = /[a-z0-9]+/g;
   const tokenize = s => (s.toLowerCase().match(TOKEN) || []).filter(t => t.length >= 2);
   const idf = (n, df) => Math.log((n + 1) / (df + 1)) + 1;
@@ -100,7 +100,7 @@
     }));
   }
 
-  // ---- UI wiring ----
+  // wire up the UI
   let INDEX = null; const selectedTopics = new Set();
   const $ = id => document.getElementById(id);
 
@@ -135,7 +135,7 @@
       $("from").addEventListener(ev, update);
       $("to").addEventListener(ev, update);
     });
-    const q0 = new URLSearchParams(location.search).get("q");  // from the index search bar
+    const q0 = new URLSearchParams(location.search).get("q");  // prefilled from the landing search box
     if (q0) $("q").value = q0;
     update();
   }).catch(() => { $("count").textContent = "Could not load the search index."; });
